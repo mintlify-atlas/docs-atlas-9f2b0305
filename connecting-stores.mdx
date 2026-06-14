@@ -1,7 +1,7 @@
 ---
-title: "Connect Your Game Stores to Baklog"
+title: "Connect All 12 Game Stores to Your Baklog Dashboard"
 sidebarTitle: "Connecting Stores"
-description: "Link Steam, GOG, PlayStation, Epic, Xbox, and nine more storefronts to Baklog using one-click browser sign-in or API keys. Credentials stay encrypted on your machine."
+description: "Connect 12 game store libraries and 8 wishlists to Baklog using one-click browser sign-in or API keys. Your credentials stay encrypted on your own machine."
 ---
 
 The **Connections** tab is the single place you manage every store. Click **Connect** next to a store and Baklog opens a headed Chrome or Edge window for cookie or OAuth sign-in. Once you authenticate, credentials are encrypted immediately in `cache/auth/` using your OS keyring (Windows Credential Manager, macOS Keychain, Linux Secret Service) with an AES-GCM file fallback — they never leave your machine. After connecting, Baklog auto-fetches the store by default and opens the fetcher log so you can watch your library land in real time. You can also run any fetcher from the **Fetcher health** row in the dashboard or directly from the terminal using the commands below.
@@ -81,6 +81,20 @@ python fetch_psn.py
 Writes `games_psn.json`.
 
 **CLI fallback:** open [https://ca.account.sony.com/api/v1/ssocookie](https://ca.account.sony.com/api/v1/ssocookie) while signed in to your PlayStation account and paste the returned `npsso` token value into `PSN_NPSSO=` in `.env`.
+
+---
+
+## PlayStation (PSN) wishlist
+
+The PSN wishlist uses the same NPSSO token as the library — no separate sign-in is required once you have connected PlayStation.
+
+**Connections tab:** PlayStation → **Connect** (same card as the library).
+
+```bash
+python fetch_psn_wishlist.py
+```
+
+Writes `games_wishlist_psn.json`. HLTB lookups are opt-in on this fetcher; pass `--hltb` to enrich completion hours during the fetch.
 
 ---
 

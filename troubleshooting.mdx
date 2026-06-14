@@ -1,7 +1,7 @@
 ---
-title: "Troubleshoot Common Baklog Problems"
+title: "Troubleshooting Baklog: Auth, Errors, and Platform Fixes"
 sidebarTitle: "Troubleshooting"
-description: "Fix auth failures, 403 errors, empty library results, stuck run queues, missing browsers, and platform-specific issues in Baklog."
+description: "Fix Baklog auth failures (exit code 4), suspicious empty results (exit code 2), GOG 403s, stuck run queues, and platform-specific limits."
 ---
 
 When something goes wrong, start by checking three places: the **Fetcher health** panel in the dashboard (exit codes and chip states), the run logs written to `profiles/<id>/cache/runs/*.jsonl` (full stdout and stderr for every fetcher run), and the sticky red toast that appears in the top-right corner of the browser when a JavaScript error is caught. Most problems are one of the known issues below.

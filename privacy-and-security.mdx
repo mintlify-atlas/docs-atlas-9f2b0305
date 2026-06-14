@@ -1,5 +1,5 @@
 ---
-title: "Baklog Privacy and Security: Local-First Design"
+title: "Baklog Privacy and Security: Local-First Data Handling"
 sidebarTitle: "Privacy & Security"
 description: "Baklog stores all credentials and library data on your machine. No telemetry, no cloud library backend. Credentials use OS keyring with AES-GCM encryption."
 ---
@@ -17,7 +17,7 @@ Baklog is fully open-source (MIT license) on GitHub. You can read every line of 
 - **Everything is stored locally on your computer.** Library files, personal annotations, cached API responses, and store credentials all live on disk in the Baklog project folder.
 - **Baklog talks to storefronts on your behalf.** Each store sees its own normal API or web-session traffic coming from you — not from a shared server or pooled credentials.
 - **There is no remote backend for your library.** The project authors never receive your catalog, notes, or credentials automatically.
-- **baklog.app is separate.** The marketing website has an optional waitlist, a bug-report endpoint, and a public free-claims feed. None of these receive your library data. See [Hosted surfaces](#hosted-surfaces-baklогapp) below.
+- **baklog.app is separate.** The marketing website has an optional waitlist, a bug-report endpoint, and a public free-claims feed. None of these receive your library data. See [Hosted surfaces](#hosted-surfaces-baklogapp) below.
 - **Backups are local.** The last 10 successful writes of each `games_*.json` and rotated copies of `data/personal.json` are kept on disk and never transmitted.
 
 ---

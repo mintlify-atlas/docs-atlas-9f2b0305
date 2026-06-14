@@ -1,7 +1,7 @@
 ---
 title: "Baklog Configuration: Environment Variables and Options"
 sidebarTitle: "Configuration"
-description: "All Baklog environment variables, server options, and per-store credential settings. Prefer the Connections tab — .env is legacy and auto-imported on first run."
+description: "All Baklog environment variables and server options. Prefer the Connections tab — .env is legacy and auto-imported into the encrypted store on first run."
 ---
 
 There are two ways to configure Baklog. The recommended path is the **Connections tab** in the dashboard, which stores credentials in an encrypted per-profile store on your machine and requires no manual file editing. The legacy path is a `.env` file in the project root — useful for headless setups or if you were using Baklog before the Connections UI existed. On the first `python server.py` start, any credentials found in `.env` are automatically imported once into the default profile's encrypted store, and the file is archived as `.env.imported`. After that, the Connections tab is the source of truth.

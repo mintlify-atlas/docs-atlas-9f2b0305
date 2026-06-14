@@ -1,10 +1,10 @@
 ---
-title: "Baklog Dashboard: Analytics, Stats, and Picks"
+title: "Baklog Dashboard: KPI Cards, Charts, and Sabermetrics"
 sidebarTitle: "Dashboard"
-description: "Explore Baklog's Dashboard tab — KPI cards, store and status donuts, HLTB histogram, 300+ sabermetric stats, and the tabbed Picks panel for deciding what to play next."
+description: "Tour Baklog's Dashboard — KPI cards, store and status donuts, HLTB histogram, 300+ sabermetric stats, Picks panel, and auto-refresh behaviours."
 ---
 
-Baklog runs at **http://localhost:8765** when you start `python server.py` and opens to the Dashboard tab by default. Built on Chart.js, the Dashboard is a full analytics suite for your cross-store collection — KPI cards, donuts, histograms, a wishlist deal recap, and a rotating marquee of over 300 sabermetric stats. Four main content tabs plus a Connections tab organize everything the app offers.
+Baklog runs at **http://localhost:8765** when you start `python server.py` and opens to the Dashboard tab by default. Built on Chart.js, the Dashboard is a full analytics suite for your cross-store collection — KPI cards, donuts, histograms, a wishlist deal recap, and a rotating marquee of over 300 stats and sabermetrics. Four main tabs plus Connections organize your cross-store library.
 
 <Tip>
   Not ready to install yet? The **[interactive demo at baklog.app/#demo](https://baklog.app/#demo)** mirrors the full app UX with sample data — no install, no sign-in required.
@@ -141,6 +141,17 @@ When you launch via `python server.py`, your statuses, notes, priorities, tags, 
 
 If you serve read-only via `python -m http.server`, the dashboard falls back to `localStorage`. Use **Export notes** / **Import notes** in the toolbar menu for manual backups in that mode.
 
+## Auto-behaviors (default on)
+
+Three background behaviors run automatically while `python server.py` is active and you have the dashboard open. All three are on by default and can be toggled from the Connections tab.
+
+- **Auto-fetch on connect** — when you connect or reconnect a store, Baklog auto-fetches its library and opens the fetcher log.
+- **Auto-refresh stale stores** — quietly refreshes one store older than 24 hours every ~30 minutes while the app is open (Connections toggle).
+- **Auto-enrich** — after a library fetch adds games, queues HLTB, reviews, covers, and co-op tags for the new entries.
+- **ITAD auto-refresh** — deal prices refresh on a 15–60 minute schedule while the dashboard is open.
+
+Full details in [Refresh and enrichment](/refresh-and-enrichment).
+
 ## Paid tier highlights
 
 Baklog is free forever to import and browse. The optional **$5/mo** ($50/yr) paid tier adds power-user conveniences without removing anything from the free experience:
@@ -159,5 +170,7 @@ Baklog is free forever to import and browse. The optional **$5/mo** ($50/yr) pai
     Expands Claimable Now to include DLC, add-ons, and in-game bonus items alongside full game giveaways.
   </Card>
 </CardGroup>
+
+**Coming soon:** cloud sync across machines; queued bulk refresh (every stale store in one sweep; free tier refreshes one store at a time, on demand); deal and watchlist alerts.
 
 See [FAQ](/faq) for the full free-vs-paid breakdown.

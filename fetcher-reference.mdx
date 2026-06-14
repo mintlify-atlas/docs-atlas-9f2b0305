@@ -1,5 +1,5 @@
 ---
-title: "Fetcher and Enricher Script Reference"
+title: "Baklog Fetcher Reference: Scripts, Flags, and API Endpoints"
 sidebarTitle: "Fetcher Reference"
 description: "Complete reference for all Baklog fetch_*.py and enrich_*.py scripts — commands, flags, output files, exit codes, and the local server API endpoints."
 ---
@@ -149,6 +149,8 @@ The server binds exclusively to `127.0.0.1`. It is not reachable from other mach
 | `GET` | `/api/auth/<id>/stream` | SSE stream of auth flow events for a sign-in session. |
 | `PUT` | `/api/auth/<p>/credentials` | Save form-entered API keys for provider `<p>` (non-browser providers). |
 | `POST` | `/api/auth/<p>/disconnect` | Wipe all stored credentials for provider `<p>`. |
+| `POST` | `/api/auth/<p>/enable` | Re-enable a local-only provider (e.g. Amazon Games launcher) that was previously disabled. |
+| `POST` | `/api/auth/master-password` | Set or change the optional portable encryption passphrase for the secrets document. |
 | `POST` | `/api/auth/secrets/export` | Download an encrypted portable secrets bundle. |
 | `POST` | `/api/auth/secrets/import` | Restore a portable bundle (optional `?passphrase=…` query param). |
 
@@ -157,6 +159,14 @@ The server binds exclusively to `127.0.0.1`. It is not reachable from other mach
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/oauth/epic/callback` | Epic OAuth redirect handler — exchanges the auth code and stores the refresh token. |
+
+### App info
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/config` | Returns app configuration including version, Supabase auth status, and Chrome availability. Always accessible without auth. |
+| `GET` | `/api/diagnostics` | Returns a redacted diagnostic payload (version, run history summary, environment flags) for support and troubleshooting. Always accessible without auth. |
+| `GET` | `/api/update-check` | Checks whether a newer Baklog version is available. Always accessible without auth. |
 
 ---
 
