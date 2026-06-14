@@ -1,0 +1,136 @@
+---
+title: "Auto-Refresh and Library Enrichment in Baklog"
+sidebarTitle: "Refresh & Enrichment"
+description: "Keep your Baklog libraries current with auto-refresh, scheduled scripts, and enrichment pipelines for HLTB hours, ProtonDB tiers, Steam reviews, and deal prices."
+---
+
+Baklog's enrichment pipeline has three layers: behaviours that run automatically while the app is open, scheduled scripts you can configure to run while the app is closed, and individual enricher scripts that backfill specific metadata columns. Together they keep your library's hours, reviews, covers, deal prices, and compatibility tiers current without requiring constant manual intervention.
+
+## While the app is open
+
+Three automatic behaviours run in the background whenever `python server.py` is active and you have the dashboard open. All three are **on by default** and can be toggled from the Connections tab.
+
+**Auto-refresh stale stores** quietly refreshes one store older than 24 hours every ~30 minutes. Only one store refreshes per cycle so the process stays unobtrusive. Toggle it off on the Connections tab if you prefer manual control.
+
+**ITAD auto-refresh** pulls fresh deal prices from IsThereAnyDeal on a 15–60 minute schedule from the Fetcher health panel. Prices in the Wishlist tab stay nearly current without any manual action.
+
+**Auto-enrich** watches for library fetches that add new games and then automatically queues the HLTB, reviews, covers, and co-op tag enrichers for those new entries. Metadata backfilling happens in the background while you browse.
+
+<Note>
+  On the free tier, store refresh runs one store at a time, on demand. The paid tier ($5/mo) adds scheduled refresh that runs even when the app is closed — no scripts required.
+</Note>
+
+## Fetcher health panel
+
+The **Fetcher health** row in the dashboard is the live control panel for all fetchers and enrichers.
+
+- **Click any chip** to enqueue that fetcher. Output streams live into the log panel and the chip refreshes when the run finishes.
+- **Shift+click** on a library or wishlist chip adds `--refresh` (ignores cache, refetches everything).
+- **Shift+click** on HLTB, Reviews, or Covers enricher chips adds `--retry-misses` (re-attempts rows previously cached as no-match).
+
+**Stall watchdog** — when a fetcher runs via `server.py` and stdout is silent for 30 seconds, the server injects a `[server] no output for Ns - still running (PID …)` message into the log panel, repeating every 60 seconds. This is informational only — the process is never killed automatically.
+
+Run logs land in `profiles/<id>/cache/runs/*.jsonl` for later inspection.
+
+## Scheduled refresh (app closed)
+
+For refreshes while Baklog is closed, use the OS-appropriate helper script. The Pro tier adds this capability through the tray or OS scheduler without any manual script setup.
+
+<Tabs>
+  <Tab title="Windows">
+    Run the PowerShell helper from your Baklog directory:
+
+    ```powershell
+    Set-Location "C:\path\to\steam-backlog"
+    .\refresh.ps1
+    ```
+
+    To refresh on a schedule without keeping the app open, register a weekly scheduled task. This example runs every Sunday at 9:00 AM:
+
+    ```powershell
+    schtasks /create /SC WEEKLY /D SUN /TN "BAKLOG Refresh" /TR "powershell -ExecutionPolicy Bypass -File \"C:\path\to\steam-backlog\refresh.ps1\"" /ST 09:00
+    ```
+
+    Scripts and UI runs use the same fetch sequence and log to `refresh.log`.
+  </Tab>
+  <Tab title="macOS / Linux">
+    Make the shell script executable the first time, then run it:
+
+    ```bash
+    chmod +x refresh.sh   # first time only
+    ./refresh.sh
+    ```
+
+    To refresh on a schedule, add a weekly cron job. This example runs every Sunday at 9:00 AM:
+
+    ```bash
+    crontab -e
+    # add the following line:
+    0 9 * * 0 cd /path/to/steam-backlog && ./refresh.sh
+    ```
+
+    <Note>
+      `refresh.sh` automatically skips `fetch_amazon.py` on non-Windows hosts. The Amazon Games launcher database is Windows-only. On macOS/Linux, use the **Amazon (Prime Gaming, web)** Connections card with `fetch_amazon.py --source web` instead.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Enrichment scripts
+
+Enrichers backfill specific metadata columns on existing library rows. Run them directly or via the `python -m enrichers` wrapper.
+
+| Script | Purpose | Command |
+|--------|---------|---------|
+| `enrich_steam_reviews.py` | Backfill Steam review % on non-Steam rows via Steam Store search | `python enrich_steam_reviews.py` |
+| `enrich_cross_store_images.py` | Backfill `header_image` / `library_image` from Steam CDN for non-Steam rows | `python enrich_cross_store_images.py` |
+| `enrich_hltb.py` | Backfill HowLongToBeat hours on any `games_*.json` row missing them | `python enrich_hltb.py` |
+| `enrich_protondb.py` | Backfill ProtonDB Linux / Steam Deck compatibility tiers on Steam-matched rows; no API key required | `python enrich_protondb.py` |
+| `fetch_itad.py` | Pull cross-store deal prices into `itad_prices.json`; also refreshes FX rates | `python fetch_itad.py` |
+| `fetch_fx.py` | Refresh FX rates only (`cache/fx_rates.json` via Frankfurter, 24h cache) | `python fetch_fx.py` |
+
+**Enrichers wrapper** — the `python -m enrichers` command provides a convenient entry point for the three most common enrichers:
+
+```bash
+python -m enrichers hltb
+python -m enrichers steam-reviews
+python -m enrichers cross-store-images
+```
+
+## Exit codes
+
+Every fetcher script prints a `=== name started at … ===` header and a footer summary with elapsed time. The exit code tells you exactly what happened:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Runtime or configuration error |
+| `2` | Suspicious empty result (or ITAD resolved zero titles) — stale data is preserved by default |
+| `3` | Drift guard refused to write (result deviated too far from the cached version) |
+| `4` | Auth failure — credential is expired or invalid |
+
+Fetcher failures appear in the Fetcher health panel and in run logs. They are not automatically sent to any bug-report endpoint. See [Getting help](/getting-help) if you need to file a report.
+
+## Fetcher flags reference
+
+These flags work across most fetcher and enricher scripts. Pass them on the command line or trigger them via Shift+click in the Fetcher health panel.
+
+| Flag | Effect |
+|------|--------|
+| `--refresh` | Ignore cache and refetch everything from the source |
+| `--retry-misses` | Re-attempt enricher rows previously cached as no match |
+| `--only-new` | Only fetch games not already present in the store JSON file |
+| `--skip-hltb` | Skip HowLongToBeat lookups (faster run, leaves existing HLTB data untouched) |
+| `--allow-empty` | Allow writing a zero-item result (bypasses the suspicious-empty guard) |
+
+For per-store connect steps and CLI fallbacks, see [Connecting stores](/connecting-stores).
+
+## Data attribution
+
+Baklog surfaces third-party metadata from the following providers:
+
+- **[ProtonDB](https://www.protondb.com)** — Steam Deck and Linux compatibility tiers (ODbL licence)
+- **[IsThereAnyDeal](https://isthereanydeal.com/)** — cross-store deal prices
+- **[GamerPower](https://www.gamerpower.com/)** — giveaway feed
+- **[HowLongToBeat](https://howlongtobeat.com/)** — game completion hours
+
+Store logos and trademarks belong to their respective owners. Baklog is not affiliated with Valve, Epic, GOG, or other storefronts.

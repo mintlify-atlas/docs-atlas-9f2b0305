@@ -1,0 +1,111 @@
+---
+title: "Baklog FAQ: Pricing, Privacy, Platforms, and Access"
+sidebarTitle: "FAQ"
+description: "Frequently asked questions about Baklog — free vs paid features, invite-only access, supported platforms, privacy model, and how to start without many games."
+---
+
+Quick, direct answers to the most common questions about Baklog — covering pricing, what stays free forever, how your data is handled, which platforms are supported, and how to get started even if you don't own many games yet.
+
+<AccordionGroup>
+
+  <Accordion title="Is Baklog free?">
+    Yes. Importing your library across every store is **free forever**: auto-fetch on connect, the full dashboard, ownership-aware deals (with sponsored slots in deal cards on the free tier), cached trophy summary percentages, and **Claimable Now** for full-game giveaways.
+
+    On the free tier, store refresh is one store at a time, on demand. Auto-refresh quietly updates one stale store every \~30 minutes while the app is open.
+
+    An optional **$5/mo** paid tier ($50/yr) adds power-user conveniences — nothing you use free today moves behind a paywall. See [What's in the paid tier?](#whats-in-the-paid-tier) below.
+  </Accordion>
+
+  <Accordion title="What's in the paid tier?">
+    **$5/mo** or **$50/yr** — live today via [baklog.app](https://baklog.app) checkout:
+
+    - No sponsored deal cards
+    - Scheduled stale-store refresh without keeping the app open
+    - Deep achievement/trophy sync (full on-demand re-pull; the free tier shows cached percentage only)
+    - Bonus claimables feed for DLC, add-ons, and in-game bonuses filtered out of the free feed
+
+    **Coming soon:** cloud sync across machines, queued bulk refresh (queue every stale store back-to-back instead of babysitting one at a time), and deal/watchlist alerts.
+
+    Visit [baklog.app](https://baklog.app) for the full free-vs-paid comparison and checkout links.
+  </Accordion>
+
+  <Accordion title="What's the difference between free and paid refresh?">
+    On the **free tier**, you refresh one store at a time: click a fetcher chip, wait for it to complete, then click the next. Auto-refresh (on by default) quietly updates one stale store every \~30 minutes while the app is open in your browser.
+
+    **Pro** adds scheduled refresh that runs even when the app is closed — via the system tray or OS scheduler. Queued bulk refresh (one action queues every stale store) is coming soon. Your credentials and library data still stay entirely on your machine either way.
+
+    See the [Refresh and Enrichment](/refresh-and-enrichment) guide for full details on auto-refresh behavior and scheduling options.
+  </Accordion>
+
+  <Accordion title="Is it safe?">
+    Yes. Your credentials stay **encrypted on your machine** — stored in the OS keyring (Windows Credential Manager, macOS Keychain, Linux Secret Service) with an AES-GCM file fallback. Store fetches use your own browser session and your own IP address. There is no Baklog server holding your logins.
+
+    The app is [open source (MIT)](https://github.com/Ogrods/BAKLOG) — you can read every line of code that touches your credentials and library data. See [Privacy and Security](/privacy-and-security) for the full data-handling and threat-model story.
+  </Accordion>
+
+  <Accordion title="Do you sell my data?">
+    No. Baklog has no business model built on your library. We do not collect, host, or sell personal data — there is no server holding it to sell in the first place.
+
+    The marketing site at [baklog.app](https://baklog.app) has a separate waitlist and an optional bug-report endpoint. See the [Privacy and Security](/privacy-and-security) page for exactly what that endpoint receives and when.
+  </Accordion>
+
+  <Accordion title="Why is Baklog invite-only right now?">
+    Baklog is onboarding in small waves so real issues can be fixed on real setups before the doors open wider. If you are not in yet, request access at [baklog.app](https://baklog.app).
+  </Accordion>
+
+  <Accordion title="Which platforms and operating systems are supported?">
+    | OS | Status |
+    |----|--------|
+    | **Windows 10/11** | Fully supported (primary development target) |
+    | **macOS** | Supported with limits — Amazon Games (launcher) and GOG Galaxy (local) are Windows/macOS-only local sources |
+    | **Linux** | Supported with limits — Amazon Games (launcher) and GOG Galaxy (local) are unavailable; use web Connect instead |
+
+    The app itself — dashboard, server, secret storage, and browser sign-in — is OS-agnostic. Platform-restricted local providers show as **Unavailable** on unsupported OSes, but web fallbacks remain available for those stores.
+
+    For the full store-by-store matrix, see the [Connecting Stores](/connecting-stores) guide.
+  </Accordion>
+
+  <Accordion title="I don't own many games yet. Is Baklog still for me?">
+    Yes — you don't need an existing library to get value from Baklog. See [baklog.app/#start](https://baklog.app/#start) for free entry paths: Epic Games Store, Prime Gaming, GOG, free-to-play titles, and more. **Claimable Now** in the Wishlist tab aggregates the week's free drops so you never miss one.
+  </Accordion>
+
+  <Accordion title="Does Baklog show me free games to claim?">
+    Yes. **Claimable Now** is a curated free-game feed sourced from Epic, GamerPower, IsThereAnyDeal (ITAD), and more. It lives in the **Wishlist** tab and is ownership-aware — it automatically skips games you already own somewhere in your library.
+
+    The free tier covers full-game giveaways. The paid tier unlocks a bonus claimables feed that also includes DLC, add-ons, and in-game bonuses.
+  </Accordion>
+
+  <Accordion title="Why is my count different from what the store shows?">
+    Storefronts pad your library with entries that are not games: DLC skins, soundtracks, wallpapers, betas, store apps, and internal entitlement slugs. Baklog filters all of these out automatically via the built-in blacklist, so the number you see reflects real games.
+
+    Separately, you can hide any real game you own but don't want to see. Hidden games can be restored at any time from the **Hidden games** panel. The blacklist is different — those entries are never shown at all and are not user-editable.
+  </Accordion>
+
+  <Accordion title="Do I have to refresh my library manually?">
+    Not usually. When you connect a store, Baklog auto-fetches its library immediately. While the app is open, auto-refresh updates any store with data older than 24 hours every \~30 minutes. ITAD deal prices refresh on a 15–60 minute schedule while the dashboard is open.
+
+    On the free tier, there is no background sync while the app is closed. The Pro tier adds scheduled refresh that runs while the app is closed via the system tray or OS scheduler.
+  </Accordion>
+
+  <Accordion title="Is Baklog open source?">
+    Yes. Baklog is released under the [MIT license](https://github.com/Ogrods/BAKLOG/blob/main/LICENSE). The full app — server, fetchers, auth, and dashboard — lives in the [public GitHub repository](https://github.com/Ogrods/BAKLOG). Optional paid features are conveniences layered on top of the same open codebase, not a fork of your data into Baklog's cloud.
+  </Accordion>
+
+</AccordionGroup>
+
+---
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="/getting-started">
+    Install Baklog and run it for the first time
+  </Card>
+  <Card title="Connecting Stores" icon="plug" href="/connecting-stores">
+    Per-store setup, privacy settings, and CLI fallbacks
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
+    Fix auth failures, 403s, empty results, and platform limits
+  </Card>
+  <Card title="Getting Help" icon="life-ring" href="/getting-help">
+    Discord, GitHub Issues, bug reporter, and email support
+  </Card>
+</CardGroup>

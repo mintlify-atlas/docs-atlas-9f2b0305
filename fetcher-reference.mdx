@@ -1,0 +1,169 @@
+---
+title: "Fetcher and Enricher Script Reference"
+sidebarTitle: "Fetcher Reference"
+description: "Complete reference for all Baklog fetch_*.py and enrich_*.py scripts — commands, flags, output files, exit codes, and the local server API endpoints."
+---
+
+Baklog's data pipeline is built from standalone Python scripts — one per store — each writing a `games_<store>.json` file to the project root. Enrichers are a second layer that backfill metadata (HLTB hours, Steam reviews, cover art, ProtonDB tiers) across all stores without re-fetching the full library. `server.py` wraps everything in a local REST and Server-Sent Events (SSE) API bound to `127.0.0.1:8765`, so the dashboard can enqueue fetchers, stream live output, and manage profiles without ever touching the network directly. You can run any script directly from the terminal or trigger it from the **Fetcher health** row in the dashboard UI.
+
+---
+
+## Library fetchers
+
+Each script below fetches one store's owned library and writes a dedicated JSON file. Run any of them directly from the repo root after connecting the corresponding store from the **Connections** tab.
+
+| Script | Store | Output file | Notes |
+|---|---|---|---|
+| `fetch_games.py` | Steam | `games_steam.json` | Requires `STEAM_API_KEY` + `STEAM_ID`. First run may be slow (Store API is rate-limited); subsequent runs use cache. |
+| `fetch_gog.py` | GOG | `games_gog.json` | Auto-selects Galaxy DB (`galaxy-2.0.db`) when present, else the saved web session. Override with `--source local\|web`. |
+| `fetch_psn.py` | PlayStation | `games_psn.json` | Requires PSN NPSSO token. Set trophy/game privacy to **Anyone** in your PSN account. |
+| `fetch_epic.py` | Epic | `games_epic.json` | Uses official OAuth. Run `python fetch_epic.py --auth-help` for the CLI auth-code flow. |
+| `fetch_amazon.py` | Amazon | `games_amazon.json` | Auto-selects the Windows launcher SQLite when present, else the saved Prime Gaming web session. Override with `--source launcher\|web`. |
+| `fetch_xbox.py` | Xbox | `games_xbox.json` | Requires an OpenXBL API key (`XBL_API_KEY`). |
+| `fetch_battlenet.py` | Battle.net | `games_battlenet.json` | Unofficial endpoint. Use `--browser env` with `BATTLENET_COOKIE` on Windows where app-bound cookie encryption blocks jar reads. |
+| `fetch_ubisoft.py` | Ubisoft | `games_ubisoft.json` | Unofficial. Requires `UBISOFT_AUTH` and `UBISOFT_SESSION_ID`. |
+| `fetch_nintendo.py` | Nintendo | `games_nintendo.json` | eShop transaction history only (~2 years). Cartridge purchases must be added manually. |
+| `fetch_humble.py` | Humble Bundle | `games_humble.json` | Games only; tools and soundtracks are filtered out. |
+| `fetch_itch.py` | itch.io | `games_itch.json` | Auto-selects `butler.db` (itch desktop app) when present, else the itch.io API key. Override with `--source local\|api`. Writes all owned keys; the dashboard itch.io tab hides non-games by default. |
+| `fetch_ea.py` | EA App | `games_ea.json` | Replays your own `ea.com` web-session Bearer token via a saved browser profile — no baked-in EA secret. |
+
+---
+
+## Wishlist fetchers
+
+Wishlist files are optional. The **Fetcher health** row marks any file not yet fetched as *missing* — this is normal until you run the matching script. Each wishlist script reuses the session established by the corresponding library **Connect** card.
+
+| Script | Store | Output file |
+|---|---|---|
+| `fetch_wishlist.py` | Steam | `games_wishlist.json` |
+| `fetch_gog_wishlist.py` | GOG | `games_wishlist_gog.json` |
+| `fetch_epic_wishlist.py` | Epic | `games_wishlist_epic.json` |
+| `fetch_humble_wishlist.py` | Humble Bundle | `games_wishlist_humble.json` |
+| `fetch_psn_wishlist.py` | PlayStation | `games_wishlist_psn.json` |
+| `fetch_ubisoft_wishlist.py` | Ubisoft | `games_wishlist_ubisoft.json` |
+| `fetch_nintendo_wishlist.py` | Nintendo | `games_wishlist_nintendo.json` |
+| `fetch_xbox_wishlist.py` | Xbox | `games_wishlist_xbox.json` |
+
+---
+
+## Enrichment scripts
+
+Enrichers backfill metadata on rows that are already in your library JSON files. Run them after a library fetch, or let **Auto-enrich** (default on) queue them automatically.
+
+| Script / command | Purpose |
+|---|---|
+| `enrich_steam_reviews.py` | Backfills Steam review percentage on non-Steam rows via Steam store search. |
+| `enrich_cross_store_images.py` | Backfills `header_image` / `library_image` from the Steam CDN for non-Steam rows. |
+| `enrich_hltb.py` | Backfills HowLongToBeat hours on any `games_*.json` row that is missing them. |
+| `enrich_protondb.py` | Backfills ProtonDB Linux / Steam Deck compatibility tiers on Steam-matched rows. No API key required. |
+| `fetch_itad.py` | Fetches cross-store deal prices and historical lows from IsThereAnyDeal → `itad_prices.json`. Also refreshes FX rates. |
+| `fetch_fx.py` | Refreshes FX rates only (`cache/fx_rates.json`, via Frankfurter; 24-hour cache). |
+
+The `python -m enrichers` wrapper provides a convenient entry point for the three most common enrichers:
+
+```bash
+python -m enrichers hltb
+python -m enrichers steam-reviews
+python -m enrichers cross-store-images
+```
+
+<Tip>
+**Auto-enrich** (default on, Connections tab) automatically queues HLTB, reviews, cover art, and co-op tags after any library fetch that adds new games — no manual enricher run required for the common case.
+</Tip>
+
+---
+
+## CLI flags
+
+These flags are accepted by all library and wishlist fetcher scripts. Store-specific flags (`--appid`, `--id`, `--source`, etc.) are documented in the per-store Connections guide.
+
+| Flag | Effect |
+|---|---|
+| `--refresh` | Ignore local cache and refetch everything from the store. |
+| `--retry-misses` | Re-attempt enricher rows that were cached as "no match" from a previous run. |
+| `--only-new` | Only fetch games not already present in the store's JSON file. |
+| `--skip-hltb` | Skip HowLongToBeat lookups (significantly faster for large libraries). |
+| `--allow-empty` | Allow writing a zero-item result. By default, an empty result exits with code `2` so stale data is preserved. |
+
+<Note>
+In the dashboard UI, **Shift+click** on a library or wishlist chip adds `--refresh` to the enqueued run. **Shift+click** on the HLTB, Reviews, and Covers enricher chips adds `--retry-misses`.
+</Note>
+
+---
+
+## Exit codes
+
+Every fetcher prints a `=== name started at … ===` header and a footer summary with elapsed time. The exit code signals the outcome to the server's run queue and to any shell scripts wrapping the fetcher.
+
+| Code | Meaning |
+|---|---|
+| `0` | Success — output file written. |
+| `1` | Runtime or configuration error (bad credentials, network failure, unexpected exception). |
+| `2` | Suspicious empty result — the store returned zero games. Stale data is preserved by default. Use `--allow-empty` to override. |
+| `3` | Drift guard refused write — the new result differed too sharply from the current file, suggesting a bad response. |
+| `4` | Auth failure — the credential is expired or invalid. Reconnect the store from the **Connections** tab. |
+
+---
+
+## Local server API
+
+`server.py` exposes a REST + SSE API on `http://127.0.0.1:8765`. All endpoints are consumed by the dashboard frontend. The fetcher whitelist is loaded from `fetchers/manifest.json`; the server cannot execute arbitrary commands.
+
+<Info>
+The server binds exclusively to `127.0.0.1`. It is not reachable from other machines on your network unless you explicitly port-forward or rebind — doing so moves the trust boundary and is your responsibility.
+</Info>
+
+### Run management
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/runs` | Returns `{ active, queue, history }` — current run queue state and recent run history. |
+| `POST` | `/api/run/<key>` | Enqueue a fetcher by its manifest key. Returns `{ run_id, status }`. |
+| `POST` | `/api/run/<run_id>/cancel` | Cancel one queued or running fetcher by run ID. |
+| `POST` | `/api/runs/cancel` | Cancel all in-flight runs. Optional query params: `?lane=fetcher\|internal` to scope to a lane; `?force=1` to force-reset the queue. |
+| `GET` | `/api/stream/<run_id>` | SSE stream of `status`, `line`, and `done` events for a single run. Supports `?since=N` or `Last-Event-ID` for resuming a dropped connection. |
+
+### Personal data
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/personal` | Returns `{ personal, prefs, manual, updated_at }` — your statuses, notes, priorities, prefs, and manually-added games. |
+| `PUT` | `/api/personal` | Atomically overwrites the entire personal document. Server rotates a backup before writing. |
+
+### Profiles
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/profiles` | Returns `{ active, active_label, legacy, profiles[] }` — all profiles and the currently active one. |
+| `POST` | `/api/profiles` | Create a new profile with `{ label }`. |
+| `POST` | `/api/profiles/active` | Switch the active profile by `{ id }`. |
+| `PUT` | `/api/profiles/<id>` | Rename a profile with `{ label }`. |
+| `DELETE` | `/api/profiles/<id>` | Delete a non-active profile. |
+
+### Auth and Connections
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/auth/status` | Returns per-provider connection state for all stores. |
+| `POST` | `/api/auth/<p>/start` | Begin a CDP browser sign-in flow for provider `<p>`. Returns `{ session_id }`. |
+| `GET` | `/api/auth/<id>/stream` | SSE stream of auth flow events for a sign-in session. |
+| `PUT` | `/api/auth/<p>/credentials` | Save form-entered API keys for provider `<p>` (non-browser providers). |
+| `POST` | `/api/auth/<p>/disconnect` | Wipe all stored credentials for provider `<p>`. |
+| `POST` | `/api/auth/secrets/export` | Download an encrypted portable secrets bundle. |
+| `POST` | `/api/auth/secrets/import` | Restore a portable bundle (optional `?passphrase=…` query param). |
+
+### OAuth
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/oauth/epic/callback` | Epic OAuth redirect handler — exchanges the auth code and stores the refresh token. |
+
+---
+
+## Run logs
+
+Every fetcher run triggered through `server.py` (from the dashboard or the API) is recorded to a JSONL file alongside the live SSE stream. Logs survive server restarts and browser refreshes.
+
+**Location:** `profiles/<id>/cache/runs/*.jsonl`
+
+Each `.jsonl` file contains one JSON object per line, representing a `status`, `line`, or `done` event — the same event types streamed via SSE. Use these files to diagnose failures after the fact, or to share a full run transcript when [getting help](/getting-help).

@@ -1,0 +1,187 @@
+---
+title: "Baklog Privacy and Security: Local-First Design"
+sidebarTitle: "Privacy & Security"
+description: "Baklog stores all credentials and library data on your machine. No telemetry, no cloud library backend. Credentials use OS keyring with AES-GCM encryption."
+---
+
+Baklog is a **local-first** desktop tool. The "server" in the README is a `http://127.0.0.1` Python process that serves files to your own browser tab — nothing more. Your game library, personal notes, and store credentials live on your machine under `profiles/<id>/` and are never transmitted automatically. When you click **Refresh** or run a fetcher, Baklog makes direct requests from your machine to the storefronts, authenticated as you, from your own IP — exactly as if you had done it by hand in a logged-in browser tab. There is no project-owned cloud backend that holds your data.
+
+<Note>
+Baklog is fully open-source (MIT license) on GitHub. You can read every line of the server, fetchers, auth module, and dashboard to verify the privacy story yourself: [github.com/Ogrods/BAKLOG](https://github.com/Ogrods/BAKLOG).
+</Note>
+
+---
+
+## TL;DR
+
+- **Everything is stored locally on your computer.** Library files, personal annotations, cached API responses, and store credentials all live on disk in the Baklog project folder.
+- **Baklog talks to storefronts on your behalf.** Each store sees its own normal API or web-session traffic coming from you — not from a shared server or pooled credentials.
+- **There is no remote backend for your library.** The project authors never receive your catalog, notes, or credentials automatically.
+- **baklog.app is separate.** The marketing website has an optional waitlist, a bug-report endpoint, and a public free-claims feed. None of these receive your library data. See [Hosted surfaces](#hosted-surfaces-baklогapp) below.
+- **Backups are local.** The last 10 successful writes of each `games_*.json` and rotated copies of `data/personal.json` are kept on disk and never transmitted.
+
+---
+
+## Credential storage
+
+Baklog handles several classes of credentials, stored in different places depending on their type.
+
+| Credential type | Where it lives | Notes |
+|---|---|---|
+| OAuth refresh tokens (Epic, Battle.net, Nintendo) | `cache/<store>/session.json` and/or OS keychain via `keyring` | Re-auth without re-prompting on subsequent runs. |
+| Session cookies (GOG, PSN NPSSO, Xbox, Ubisoft, itch, Epic storefront) | `cache/auth/profiles/<store>/` (CDP browser user-data) | Same session your browser holds; stored locally after a Connect sign-in flow. |
+| API keys (Steam Web API, OpenXBL, ITAD, itch.io) | `.env` (legacy) or encrypted secrets doc | `.env` is auto-imported on first server start then archived. |
+| Encrypted secrets bundle (Connections tab) | OS keyring (primary) + `cache/auth/secrets.bin` (AES-256-GCM encrypted) | All Connections credentials are stored encrypted at rest. |
+
+Credentials are **never** written into fetched `games_*.json` files, **never** logged in plain text to stdout, and **never** included in the bug-report bundle payload.
+
+---
+
+## Library and personal data
+
+### `games_*.json`
+
+One file per store. Contains library titles, your playtime and last-played timestamp as the store reports them, store cover-art URLs, genre tags, and enrichment data (Steam reviews, HowLongToBeat hours, ITAD prices, ProtonDB tiers). Owned by the corresponding `fetch_*.py` script.
+
+The last 10 successful writes of each file are kept in `data/games_backups/<stem>/` so a bad fetcher run cannot wipe your data. These backups are local only.
+
+### `data/personal.json`
+
+Your personal annotations: status (`backlog`, `next`, `playing`, `unfinished`, `live service`, `finished`, `skip`), notes, priority score, HLTB hour overrides, and the hidden flag. Keyed by `store:id`.
+
+Rotated backups are written to `data/personal_backups/personal-<timestamp>.json` on every `PUT /api/personal` call. All local only.
+
+### `localStorage`
+
+The browser tab mirrors `personal.json` plus UI preferences (sort order, picks tab, collapse state, etc.) in `localStorage`. Nothing in `localStorage` leaves the browser tab.
+
+Neither `games_*.json` nor `data/personal.json` is transmitted automatically. They leave your machine only if **you** copy them somewhere.
+
+---
+
+## OS keyring
+
+The encrypted Connections credential document (`cache/auth/secrets.bin`) is protected by a key held in your OS keyring:
+
+| OS | Backend |
+|---|---|
+| Windows | Windows Credential Manager |
+| macOS | macOS Keychain |
+| Linux | Secret Service (GNOME Keyring, KWallet, etc.) |
+| Fallback (no keyring) | 32-byte random key written to `cache/auth/.master_key` |
+
+The `.master_key` fallback is a plaintext key file protected only by OS file permissions. It is weaker than a real keychain. Prefer enabling a master password (Connections ⋮ menu) if no keyring is available — the master password derives the encryption key via scrypt and is never written to disk.
+
+**Encryption details:** AES-256-GCM with a fresh random 12-byte nonce on every write; authentication tag verified on read. Source: `auth/secrets.py`.
+
+---
+
+## Portable secrets bundle
+
+The Connections ⋮ menu → **Portable bundle…** → **Export bundle…** creates a single file you can carry to a new machine or keep as a backup.
+
+| What | Detail |
+|---|---|
+| File name | `baklog-secrets-<timestamp>.bundle` |
+| Contents | Encrypted credentials document (`cache/auth/secrets.bin` contents) + Chrome/Edge browser profile directories under `cache/auth/profiles/<store>/` for cookie-based providers (GOG, PSN, etc.) |
+| Encryption | scrypt (N=2¹⁴) + AES-256-GCM, always passphrase-encrypted (minimum 8 characters), independent of the local keychain |
+| Passphrase recovery | **None** — the passphrase is not stored by Baklog. Losing it means the bundle cannot be recovered. |
+
+The bundle **never** leaves your machine unless you copy it somewhere yourself. Baklog does not upload it.
+
+On import, the existing `cache/auth/profiles/` tree is moved to `cache/auth/profiles_pre_import_<timestamp>/` before overwriting, so a bad import can be rolled back manually.
+
+---
+
+## Hosted surfaces (baklog.app)
+
+The marketing website at [baklog.app](https://baklog.app) has a small number of optional, separate surfaces. **The local dashboard does not upload your library or credentials to any of these.**
+
+| Surface | What it collects | When |
+|---|---|---|
+| Waitlist (`/api/subscribe`) | The email address you submit | You opt in on the landing page |
+| Bug report (`/api/report`) | A whitelisted diagnostic bundle you explicitly send | You click **Send report** in the consent dialog |
+| Free claims feed (`free-claims.json`) | Public curated giveaway metadata — no personal data | App polls when you open Claimable Now |
+
+---
+
+## Bug reports
+
+When an uncaught error fires in the dashboard, Baklog captures it locally and surfaces a sticky toast with **Send report**, **Copy bug bundle**, **Errors only**, **Details**, and **Dismiss** options. Nothing is sent automatically.
+
+**Send report** opens a consent dialog that shows the exact JSON payload before sending. The bundle is a strict whitelist — only these fields are included:
+
+| Field | Content |
+|---|---|
+| `app_version` | From the `<meta name="baklog-version">` tag |
+| `generated_at` | ISO timestamp of the click |
+| `ua` | `navigator.userAgent`, truncated to 256 characters |
+| `runtime.view` | Current view name (e.g. `library`) |
+| `runtime.data_version` | Internal `_dataVersion` counter |
+| `runtime.active_filter_count` | Number of active filters |
+| `runtime.table_fingerprint` | Opaque cache-invalidation hash |
+| `runtime.last_render_ms` | Most recent `renderTable()` duration |
+| `runtime.dash_stats` | Dashboard render counters (full / replay / skipped) |
+| `errors.session[]` | Uncaught errors from the current browser tab |
+| `errors.persisted[]` | Rolling history from `baklog-error-log` localStorage (last 200 entries) |
+
+The bundle deliberately **does not** include `state.personal` (your notes, statuses, priorities), `manualGames`, library or wishlist JSON, credentials, `.env` contents, cookies, or any path containing your home directory.
+
+**Copy bug bundle** places the same sanitized JSON on your clipboard without any network request. Nothing is sent until you explicitly confirm in the **Send report** dialog.
+
+<Info>
+Fetcher failures are a separate channel. Run logs stream to the Fetcher health panel via SSE and are saved to `profiles/<id>/cache/runs/*.jsonl`. They are **not** sent to the bug-report endpoint.
+</Info>
+
+---
+
+## Optional Supabase auth
+
+Supabase auth is **opt-in** and only active when you set `BAKLOG_SUPABASE_URL` and `BAKLOG_SUPABASE_ANON_KEY` in `.env`. When enabled, Supabase stores your account email and session metadata on their hosted service. Your library JSON and Connections secrets remain local — only the login handshake talks to Supabase.
+
+Without those environment variables, Supabase is not contacted and behavior is unchanged (local profile switcher, no sign-in gate).
+
+---
+
+## Third-party data sources
+
+When you run fetchers or open the dashboard, Baklog's enrichers and deal-price scripts contact these services **directly from your machine**. No project-owned server proxies these requests.
+
+<CardGroup cols={2}>
+  <Card title="ProtonDB" href="https://www.protondb.com">
+    Steam Deck and Linux compatibility tiers. Data licensed under ODbL.
+  </Card>
+  <Card title="IsThereAnyDeal" href="https://isthereanydeal.com/">
+    Cross-store deal prices and historical lows. Requires a free API key.
+  </Card>
+  <Card title="GamerPower" href="https://www.gamerpower.com/">
+    Free giveaway feed shown in the Claimable Now panel.
+  </Card>
+  <Card title="HowLongToBeat" href="https://howlongtobeat.com/">
+    Completion hour estimates backfilled by `enrich_hltb.py`.
+  </Card>
+</CardGroup>
+
+Store logos and trademarks belong to their respective owners. Baklog is not affiliated with Valve, Epic, GOG, Sony, Microsoft, or other storefronts.
+
+---
+
+## What does *not* happen
+
+- **No telemetry or analytics.** No silent crash reports. The error log stays in your browser until you copy it or explicitly send it via **Send report**.
+- **No third-party ad or tracking scripts** in the dashboard.
+- **No project-owned cloud service** holds your library or credentials.
+- **No automatic sync between machines.** Use the portable secrets bundle (Connections → Export bundle…) to move to a new PC.
+
+## Removing your data
+
+Everything is on disk. Delete these to remove all Baklog data:
+
+| Path | Contents |
+|---|---|
+| `data/personal.json` + `data/personal_backups/` | Your annotations and their rotated backups |
+| `games_*.json`, `itad_prices.json`, `data/games_backups/` | Fetched libraries and their rotated backups |
+| `cache/` | CDP browser profiles, fetcher caches, OAuth refresh tokens |
+| `.env` / `.env.imported` | API keys and session cookies (legacy path) |
+
+To rotate or revoke individual credentials, do so on the storefront's account settings page, then delete the matching file in `cache/` or the corresponding row in `.env`.

@@ -1,0 +1,170 @@
+---
+title: "Troubleshoot Common Baklog Problems"
+sidebarTitle: "Troubleshooting"
+description: "Fix auth failures, 403 errors, empty library results, stuck run queues, missing browsers, and platform-specific issues in Baklog."
+---
+
+When something goes wrong, start by checking three places: the **Fetcher health** panel in the dashboard (exit codes and chip states), the run logs written to `profiles/<id>/cache/runs/*.jsonl` (full stdout and stderr for every fetcher run), and the sticky red toast that appears in the top-right corner of the browser when a JavaScript error is caught. Most problems are one of the known issues below.
+
+<AccordionGroup>
+
+  <Accordion title="Auth failures (exit code 4)">
+    **Symptom:** The fetcher exits with code `4` and the Connections card shows "reconnect required."
+
+    Sessions expire on different schedules per store. Epic wishlist, Nintendo, and cookie-based stores tend to need refresh more often than API-key stores like Steam.
+
+    **Fix:**
+
+    1. Open the **Connections** tab and click **Reconnect** for the affected store.
+    2. Complete the headed browser sign-in flow again.
+    3. Re-run the fetcher from **Fetcher health** or from the terminal.
+  </Accordion>
+
+  <Accordion title="Suspicious empty result (exit code 2)">
+    **Symptom:** The fetcher refuses to write an empty file; the log mentions exit `2`.
+
+    **Cause:** Baklog preserves stale data when a fetch returns zero items unexpectedly. This protects you from a store outage, an auth glitch, or a privacy setting blocking the library from being read.
+
+    **Fix:**
+
+    1. Confirm the store's privacy settings allow the library to be read — for example, Steam requires **Game details: Public**, and PSN trophies must be set to **Anyone**.
+    2. Reconnect on the Connections tab and retry.
+    3. If you genuinely have zero items (a brand-new account), run the fetcher with `--allow-empty` to override the guard.
+  </Accordion>
+
+  <Accordion title="GOG 403 Forbidden">
+    **Symptom:** `fetch_gog.py` fails with a `403 Forbidden` response when using the web source.
+
+    **Fix:**
+
+    1. Reconnect GOG on the Connections page — this refreshes the `gog-al` session cookie that the embed API requires.
+    2. On Windows or macOS with GOG Galaxy installed, you can read the local database instead:
+
+    ```bash
+    python fetch_gog.py --source local
+    ```
+
+    This reads `galaxy-2.0.db` directly and bypasses the embed API entirely.
+  </Accordion>
+
+  <Accordion title="Windows: fetcher hangs or run queue wedges">
+    <Warning>
+      This is the most common cause of a completely silent, spinning fetcher on Windows. If you see no log output and the chip never resolves, check which Python binary is being used first.
+    </Warning>
+
+    **Symptom:** A fetcher chip spins forever with no log output and the run queue never clears.
+
+    **Cause:** The fetcher subprocess was launched from the Microsoft Store `python.exe` stub rather than the project virtual environment. The stub intercepts `subprocess.Popen` in a way that hangs the queue.
+
+    **Fix:** Always start the server using the venv Python binary:
+
+    ```powershell
+    .venv\Scripts\python.exe server.py
+    ```
+
+    `server.py` auto-detects and uses `.venv` when it is present, so this is the correct launch path. The Windows shortcut at `.\scripts\start-server.ps1` handles this automatically.
+  </Accordion>
+
+  <Accordion title="Chrome / Edge not found">
+    **Symptom:** The Connections sign-in flow fails to open a browser window.
+
+    **Fix:**
+
+    1. Install [Google Chrome](https://www.google.com/chrome/) or [Microsoft Edge](https://www.microsoft.com/edge) (Edge ships with Windows by default).
+    2. If your browser is installed in a non-standard location, set the full path in your environment:
+
+    ```bash
+    BAKLOG_CHROME_PATH=/path/to/chrome
+    ```
+
+    Add this to your `.env` file or set it as a system environment variable before starting `server.py`.
+  </Accordion>
+
+  <Accordion title="Battle.net cookie issues (Windows)">
+    **Symptom:** Running `fetch_battlenet.py --browser edge` fails on Windows with Edge or Chrome version 127 or later.
+
+    **Cause:** App-bound encryption (introduced in Chrome/Edge v127) can block the legacy approach of reading the browser's cookie jar at fetch time.
+
+    **Fix — choose one:**
+
+    - **Recommended:** Use **Connections → Connect** in the dashboard. The stored, encrypted cookie avoids the jar-read problem entirely.
+    - **Alternative:** Paste your Battle.net cookie directly into `.env`:
+
+      ```bash
+      BATTLENET_COOKIE=your_cookie_value_here
+      ```
+
+    - **Alternative:** Switch to Firefox for the Battle.net fetch, which does not use app-bound encryption:
+
+      ```bash
+      python fetch_battlenet.py --browser firefox
+      ```
+  </Accordion>
+
+  <Accordion title="Amazon on macOS / Linux">
+    **Symptom:** The Amazon launcher card shows **Unavailable** on macOS or Linux.
+
+    **Expected behavior:** The Amazon Games launcher database is a Windows-only local source. It reads a DPAPI-encrypted SQLite file from the desktop launcher with no portable equivalent on other platforms.
+
+    **Fix:** Use the web source instead. Connect **Amazon (Prime Gaming, web)** from the Connections tab, then run:
+
+    ```bash
+    python fetch_amazon.py --source web
+    ```
+
+    The fetcher auto-picks the web session when the launcher DB is unavailable.
+  </Accordion>
+
+  <Accordion title="GOG Galaxy on Linux">
+    **Symptom:** GOG Galaxy (local) shows as unavailable on Linux.
+
+    **Expected behavior:** There is no supported Linux GOG Galaxy path. `galaxy-2.0.db` exists on Windows (`ProgramData`) and macOS (`Shared`) but not on Linux.
+
+    **Fix:** Use the GOG web source instead. Connect **GOG (web)** from the Connections tab — the web fetcher works on all platforms.
+  </Accordion>
+
+  <Accordion title="Count differs from the store">
+    **Symptom:** Baklog shows fewer games than Steam, Epic, or another storefront.
+
+    **Cause:** Stores pad your library with entries that are not games — DLC skins, soundtracks, wallpapers, betas, store apps, and internal entitlement slugs (such as `Fortnite_StWContent`). Baklog filters these out automatically via the built-in blacklist (`isJunkEntry()` in `js/game-core.js`, mirrored by Python source filters). This is intentional.
+
+    Separately, Nintendo eShop fetch covers approximately two years of digital history only — cartridge purchases and older digital orders are not included and need to be added manually.
+
+    If you want to hide a real game you own but don't want to see, use the **Hidden games** panel. Those entries can be restored at any time. The blacklist, by contrast, is never shown and cannot be restored.
+  </Accordion>
+
+  <Accordion title="Wishlist chip shows 'missing'">
+    **Symptom:** Fetcher health marks a wishlist file as missing.
+
+    **Expected behavior:** Wishlist JSON files are optional per store and only appear after you have run the matching wishlist script. The chip is informational — it does not indicate an error with your library data. See the [Connecting Stores](/connecting-stores) guide for per-store wishlist setup.
+  </Accordion>
+
+  <Accordion title="Stall watchdog messages in the log">
+    **Symptom:** The log prints `[server] no output for Ns - still running` during a fetch.
+
+    **Expected behavior:** This is informational only. The watchdog fires when stdout has been silent for more than 30 seconds — common with large Steam libraries on first run, which can take several minutes. The process is not killed; it will complete on its own.
+  </Accordion>
+
+  <Accordion title="Read-only mode: edits not saving">
+    **Symptom:** Status changes and notes disappear after a page reload.
+
+    **Cause:** When Baklog is served via `python -m http.server`, personal edits are stored in `localStorage` only and cannot be written back to `data/personal.json`.
+
+    **Fix:** Run `python server.py` instead, which enables the write-back API. On first server boot, a banner offers to migrate any existing `localStorage` data into `data/personal.json` automatically. Alternatively, use **Export notes** and **Import notes** in the toolbar menu to move data between sessions.
+  </Accordion>
+
+</AccordionGroup>
+
+## Exit code quick reference
+
+| Exit code | Meaning |
+|:---------:|---------|
+| `0` | Success — data written |
+| `1` | General / unexpected error |
+| `2` | Suspicious empty result — zero items returned; stale data preserved |
+| `3` | Missing dependency or configuration error |
+| `4` | Auth failure — session expired or credentials invalid |
+
+## Still stuck?
+
+Check the [FAQ](/faq) for answers about supported platforms, count differences, and privacy. For direct help, visit [Getting Help](/getting-help) — includes Discord, GitHub Issues, and email. The [Connecting Stores](/connecting-stores) page has per-store privacy settings and CLI fallback steps that resolve most store-specific failures.

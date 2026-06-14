@@ -1,0 +1,90 @@
+---
+title: "Profiles, PINs, and Moving to a New Machine"
+sidebarTitle: "Profiles & Moving"
+description: "Create separate Baklog profiles for work and play, protect them with optional PINs, and export a portable credentials bundle when you move to a new PC."
+---
+
+Baklog profiles let you maintain completely separate datasets for different contexts — a work profile that tracks game research separate from your personal backlog, for example, or separate profiles for different household members. Each profile has its own library, connections, and personal data. An optional PIN gate controls who can switch profiles when Supabase authentication is enabled. When you get a new PC, a portable credentials bundle lets you move every store connection in a single encrypted file.
+
+## Local profiles
+
+Until you add a second profile, everything lives in the repo root and behaviour is unchanged. Profiles are opt-in.
+
+**To create a profile:**
+
+<Steps>
+  <Step title="Open the profile menu">
+    Click the profile menu in the header, next to the Baklog logo.
+  </Step>
+  <Step title="Open Manage profiles">
+    Select **Manage profiles** from the dropdown.
+  </Step>
+  <Step title="Name and create">
+    Enter a name — for example, `Work` or `Play` — and click **Create**.
+  </Step>
+</Steps>
+
+The **first time you create any profile**, Baklog copies your current `games_*.json`, `data/`, and `cache/auth/` into `profiles/default/` (the original root files are kept as a backup) and starts the new profile empty. From that point on, each profile keeps its own library, connections, and personal data under `profiles/<name>/`. Switching profiles reloads the app.
+
+**Rollback** — if you want to return to the legacy single-root layout, delete the `profiles/` folder. Baklog falls back to reading from the root automatically.
+
+## Profile CLI
+
+CLI fetchers respect the active profile through the `BAKLOG_PROFILE` environment variable or the active entry in `profiles/index.json`.
+
+```powershell
+$env:BAKLOG_PROFILE='work'; python fetch_games.py
+```
+
+The dev server **auto-ignores** `BAKLOG_PROFILE` in its own shell at startup so the in-app profile menu always owns which profile is active. Per-run fetchers launched from the UI still pin the correct profile automatically.
+
+## Optional PINs
+
+When Supabase sign-in is enabled, set `BAKLOG_LOCAL_PROFILES=1` to keep the local Work/Play profile switcher available alongside Supabase auth. You can then set an optional per-profile PIN that gates switching to that profile. Profile mutations require the in-app local header — PINs cannot be bypassed from the CLI.
+
+## New profile defaults
+
+New profiles **opt out all local providers** — Amazon launcher, GOG Galaxy, and itch butler — until you explicitly connect them on that profile. This prevents a fresh profile from automatically pulling machine-wide launcher databases you didn't intend to share with that context. Web-based providers (Steam, PSN, Epic, etc.) still need to be connected per profile.
+
+<Warning>
+  Switching profiles cancels any in-flight fetchers, resets the secrets cache, and rebinds run paths. Do not switch profiles while a library fetch is in progress. The app also blocks profile switching while a browser sign-in flow is active.
+</Warning>
+
+## Moving to a new machine
+
+### Credentials (Connections)
+
+Moving your store connections to a new machine is a three-step process using the portable bundle export. The bundle is encrypted with a passphrase you choose.
+
+<Steps>
+  <Step title="Export from the old machine">
+    On your old machine: open **Connections** → click **⋮** → **Portable bundle…** → **Export bundle…**. Choose a passphrase and save the downloaded `baklog-secrets-*.bundle` somewhere accessible (USB drive, cloud folder, etc.).
+  </Step>
+  <Step title="Install Baklog on the new machine">
+    On your new machine: install Baklog with `pip install -r requirements.txt` and run `python server.py` once to initialise the directory structure. Chrome or Edge must be installed for the Connections sign-in flow.
+  </Step>
+  <Step title="Import on the new machine">
+    On your new machine: open **Connections** → click **⋮** → **Portable bundle…** → **Import bundle…**. Pick the bundle file and enter the same passphrase. The page reloads with every provider restored, including browser cookie profiles.
+  </Step>
+</Steps>
+
+**Terminal alternative** — if you prefer the command line, the `auth` module provides equivalent export and import commands:
+
+```bash
+python -m auth export-bundle --out baklog-secrets.bundle
+python -m auth import-bundle baklog-secrets.bundle
+```
+
+### Copying library data
+
+Credentials get you authenticated, but your library data — statuses, notes, hours, and game lists — lives in separate files. Copy these to the new machine (or keep them in sync via Dropbox or OneDrive):
+
+- `games_*.json` and `itad_prices.json` — your per-store library snapshots
+- `data/personal.json` — statuses, notes, priorities, and tags
+- `profiles/` folder — if you use multi-profile mode, copy the entire folder
+
+Optionally copy `cache/` to avoid re-downloading API responses. If you skip the cache copy, re-run the fetchers on the new machine to refresh stale data.
+
+<Tip>
+  Syncing `data/personal.json` via Dropbox or OneDrive is a simple way to keep your statuses, notes, and priority settings backed up and consistent across machines — no cloud account required on Baklog's end.
+</Tip>

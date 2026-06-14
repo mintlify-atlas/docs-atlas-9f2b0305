@@ -1,0 +1,244 @@
+---
+title: "Baklog Configuration: Environment Variables and Options"
+sidebarTitle: "Configuration"
+description: "All Baklog environment variables, server options, and per-store credential settings. Prefer the Connections tab — .env is legacy and auto-imported on first run."
+---
+
+There are two ways to configure Baklog. The recommended path is the **Connections tab** in the dashboard, which stores credentials in an encrypted per-profile store on your machine and requires no manual file editing. The legacy path is a `.env` file in the project root — useful for headless setups or if you were using Baklog before the Connections UI existed. On the first `python server.py` start, any credentials found in `.env` are automatically imported once into the default profile's encrypted store, and the file is archived as `.env.imported`. After that, the Connections tab is the source of truth.
+
+---
+
+## The Connections tab
+
+<Tip>
+The **Connections tab** is the recommended way to manage all store credentials. No `.env` file is required for normal use.
+</Tip>
+
+Open the **Connections** tab in the dashboard and click **Connect** next to each store. For stores that use browser-based sign-in (GOG, PSN, Epic, Battle.net, Ubisoft, Nintendo, Humble, EA, Xbox wishlist), Baklog opens a headed Chrome or Edge window for the OAuth or cookie flow. For API-key stores (Steam, itch.io, OpenXBL, ITAD), a form accepts the key directly.
+
+Credentials are stored in **`cache/auth/secrets.bin`** — an AES-256-GCM encrypted document. The encryption key is held in your OS keyring:
+
+| OS | Keyring backend |
+|---|---|
+| Windows | Windows Credential Manager (DPAPI) |
+| macOS | macOS Keychain |
+| Linux | Secret Service (e.g. GNOME Keyring, KWallet) |
+| Any (fallback) | AES-GCM key written to `cache/auth/.master_key` when no keyring is available |
+
+The `.master_key` fallback is protected only by OS file permissions. Prefer a real keyring or set a master password from the Connections ⋮ menu.
+
+### Portable secrets bundle
+
+The Connections ⋮ menu → **Portable bundle…** lets you export and import all credentials as a single encrypted file (`baklog-secrets-<timestamp>.bundle`). The bundle is always passphrase-encrypted (minimum 8 characters) with scrypt + AES-256-GCM, independently of the local keychain. Use it to move to a new machine or recover from a corrupted keychain.
+
+```bash
+# CLI equivalent
+python -m auth export-bundle --out baklog-secrets.bundle
+python -m auth import-bundle baklog-secrets.bundle
+python -m auth import-bundle baklog-secrets.bundle --dry-run
+```
+
+Losing the bundle passphrase is unrecoverable — there is no reset path.
+
+---
+
+## Environment variables (.env)
+
+<Warning>
+`.env` is a **legacy configuration path**. On the first `python server.py` start, any credentials present in `.env` are imported once into the default profile's encrypted store and the file is archived as `.env.imported`. After migration, manage credentials from the Connections tab.
+</Warning>
+
+If you prefer the file-based path or need a headless setup, copy `.env.example` to `.env` and fill in the values below. Variable names are case-sensitive.
+
+```bash
+copy .env.example .env   # Windows
+cp .env.example .env     # macOS / Linux
+```
+
+### Store credentials
+
+These are imported automatically from `.env` on first server start.
+
+<ParamField body="STEAM_API_KEY" type="string">
+  Your Steam Web API key — a 32-character hex string. Get one at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey) (use `localhost` as the domain).
+</ParamField>
+
+<ParamField body="STEAM_ID" type="string">
+  Your SteamID64 — a 17-digit number starting with `7656119`. Look yours up at [steamid.io](https://steamid.io).
+</ParamField>
+
+<ParamField body="GOG_AL" type="string">
+  GOG session cookie (`gog-al`). Copy it from browser DevTools → Application → Cookies while signed in at gog.com. Prefer the **GOG (web)** Connect card instead.
+</ParamField>
+
+<ParamField body="PSN_NPSSO" type="string">
+  PlayStation NPSSO token. Fetch it from `https://ca.account.sony.com/api/v1/ssocookie` while signed in. Prefer the **PlayStation** Connect card instead.
+</ParamField>
+
+<ParamField body="EPIC_AUTH_CODE" type="string">
+  One-time Epic authorization code — **not** a cookie. Run `python fetch_epic.py --auth-help` for the full flow. Prefer the **Epic (library)** Connect card instead.
+</ParamField>
+
+<ParamField body="EPIC_STORE_COOKIE" type="string">
+  Epic storefront cookie string — used only by `fetch_epic_wishlist.py`. Copy the full `Cookie:` header from a GraphQL request on the Epic wishlist page.
+</ParamField>
+
+<ParamField body="AMAZON_GAMES_SQL_DIR" type="string">
+  Optional override for the Amazon Games launcher SQLite folder. Windows only. Default: `%LOCALAPPDATA%\Amazon Games\Data\Games\Sql`. Leave unset to use the default path.
+</ParamField>
+
+<ParamField body="ITAD_API_KEY" type="string">
+  IsThereAnyDeal free API key — used by `fetch_itad.py` for deal prices and historical lows. Get one at [isthereanydeal.com/dev/api/](https://isthereanydeal.com/dev/api/).
+</ParamField>
+
+<ParamField body="ITAD_COUNTRY" type="string" default="US">
+  ISO 3166-1 alpha-2 country code that sets deal prices and display currency for ITAD results. Example: `GB` for British pounds.
+</ParamField>
+
+<ParamField body="ITCH_API_KEY" type="string">
+  itch.io API key — used when the local `butler.db` is absent. Generate one at [itch.io/user/settings/api-keys](https://itch.io/user/settings/api-keys).
+</ParamField>
+
+<ParamField body="XBL_API_KEY" type="string">
+  OpenXBL API key for Xbox library and wishlist fetchers. Free key at [xbl.io](https://xbl.io/).
+</ParamField>
+
+<ParamField body="BATTLENET_COOKIE" type="string">
+  Full `Cookie:` header value copied from a `games-and-subs` network request on `account.battle.net`. Recommended over the automatic cookie jar on Windows (Chrome/Edge v127+ app-bound encryption blocks jar reads). Use with `--browser env`.
+</ParamField>
+
+<ParamField body="BATTLENET_BROWSER" type="string" default="edge">
+  Browser whose cookie jar `fetch_battlenet.py` reads. Options: `edge`, `chrome`, `brave`, `firefox`, `env`. Use `env` to skip the jar entirely and rely on `BATTLENET_COOKIE` above.
+</ParamField>
+
+<ParamField body="UBISOFT_AUTH" type="string">
+  Ubisoft `Authorization` header value (starts with `Ubi_v1 t=…`). Copy from a `public-ubi` network request while signed in at ubisoft.com.
+</ParamField>
+
+<ParamField body="UBISOFT_SESSION_ID" type="string">
+  Ubisoft `Ubi-SessionId` UUID — from the same network request as `UBISOFT_AUTH`.
+</ParamField>
+
+<ParamField body="UBISOFT_APP_ID" type="string">
+  Optional Ubisoft `Ubi-AppId` override. Defaults to the ubisoft.com web app ID.
+</ParamField>
+
+<ParamField body="NINTENDO_COOKIE" type="string">
+  Nintendo eShop `Cookie` header from a `ec.nintendo.com/my/transactions` request while signed in.
+</ParamField>
+
+### Server and app options
+
+<ParamField body="BAKLOG_SERVE_BUILT" type="string">
+  Set to `1` to serve the production frontend from `dist/` (hashed assets, long-term cache headers). Requires `npm ci && npm run build` first. Omit or set to `0` for dev mode (raw ES modules, no npm required).
+</ParamField>
+
+<ParamField body="BAKLOG_CHROME_PATH" type="string">
+  Override the Chrome or Edge executable path used for browser-based Connect sign-in flows. Useful if Chrome is installed in a non-standard location.
+</ParamField>
+
+<ParamField body="BAKLOG_PROFILE" type="string">
+  Set the active profile ID for CLI fetchers run outside the server context. When unset, fetchers use the default profile.
+</ParamField>
+
+<ParamField body="BAKLOG_POLAR_ORG_ID" type="string">
+  Polar organization ID (Settings → General) for local Pro license-key activation via `POST /api/license/activate`. Not needed when using hosted Supabase auth (the webhook sets the plan server-side).
+</ParamField>
+
+### Auth options (invite-only Supabase)
+
+<ParamField body="BAKLOG_SUPABASE_URL" type="string">
+  Supabase project URL (e.g. `https://xxxx.supabase.co`). Setting this enables invite-only login — Baklog will require a Supabase account before the dashboard loads.
+</ParamField>
+
+<ParamField body="BAKLOG_SUPABASE_ANON_KEY" type="string">
+  Supabase anon key for the project. Required alongside `BAKLOG_SUPABASE_URL`.
+</ParamField>
+
+<ParamField body="BAKLOG_SUPABASE_JWT_SECRET" type="string">
+  Optional legacy HS256 JWT secret. Omit if your Supabase project uses JWKS-only keys (the modern default).
+</ParamField>
+
+<ParamField body="BAKLOG_AUTH_DISABLED" type="string">
+  Set to `1` to skip the Supabase auth gate entirely. Useful during local testing. Has no effect when `BAKLOG_SUPABASE_URL` is not set.
+</ParamField>
+
+<ParamField body="BAKLOG_LOCAL_PROFILES" type="string">
+  Set to `1` to keep the local Work/Play profile switcher available while Supabase sign-in is active. Optional per-profile PINs gate switching; profile mutations require the in-app `X-BAKLOG-Local` header.
+</ParamField>
+
+### Admin (local maintainers only)
+
+<ParamField body="BAKLOG_ADMIN" type="string">
+  Set to `1` to enable the local admin dashboard at `/admin/` (free-claims editor and job runner). Local-only — never shipped to end users. Restart the server after changing this value.
+</ParamField>
+
+---
+
+## Production frontend build
+
+Dev mode serves raw ES modules directly from the repo with `Cache-Control: no-store`. No `npm` installation is required for dev mode. For a smaller, cacheable production bundle:
+
+```bash
+npm ci
+npm run build
+```
+
+Then set `BAKLOG_SERVE_BUILT=1` before starting the server:
+
+<Tabs>
+  <Tab title="PowerShell">
+    ```powershell
+    $env:BAKLOG_SERVE_BUILT='1'; python server.py
+    ```
+  </Tab>
+  <Tab title="Bash">
+    ```bash
+    BAKLOG_SERVE_BUILT=1 python server.py
+    ```
+  </Tab>
+</Tabs>
+
+Hashed assets under `dist/` receive `immutable` long-term cache headers; `index.html` always stays `no-store`. If the version in `dist/manifest.json` does not match the running server version, a warning is printed at startup.
+
+---
+
+## Server startup
+
+Start the local server from the repo root:
+
+```bash
+python server.py
+```
+
+The server binds to **`127.0.0.1:8765`** only and is not reachable from other machines on your network by default. Then open [http://localhost:8765](http://localhost:8765) in your browser.
+
+**Windows shortcut:** `scripts\start-server.ps1` — the same venv launcher, picks `.venv` automatically.
+
+```powershell
+.\scripts\start-server.ps1
+```
+
+`server.py` auto-selects `.venv` when it is present in the repo root. 
+
+<Warning>
+On Windows, always start Baklog through the project `.venv` — **not** the Microsoft Store `python.exe` stub. The Microsoft Store stub can hang `subprocess.Popen` calls, which wedges the run queue and prevents fetchers from launching. `server.py` will pick `.venv` automatically when present, but if you call `python server.py` from the stub context (e.g. from a bare terminal where no venv is activated), fetcher launches may deadlock.
+</Warning>
+
+### System tray (optional)
+
+Keep Baklog running in the background with a tray icon that offers **Open**, **Restart**, and **Quit**:
+
+```powershell
+pip install pystray Pillow
+.\.venv\Scripts\pythonw.exe tray_app.py
+```
+
+Or build a portable folder with its own `.venv`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build_installer.ps1
+# then run dist\baklog\Start BAKLOG (tray).bat
+```
+
+The tray menu can register login autostart (Windows registry, macOS LaunchAgent, Linux XDG autostart).

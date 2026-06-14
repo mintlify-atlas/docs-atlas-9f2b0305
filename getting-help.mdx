@@ -1,0 +1,82 @@
+---
+title: "Get Help and Report Bugs in Baklog"
+sidebarTitle: "Getting Help"
+description: "Report bugs from the Baklog app, join the Discord community, file GitHub issues, or email the team. Includes how the bug bundle works and what data it contains."
+---
+
+Baklog has two separate support paths: the **in-app bug reporter** for JavaScript errors caught in the dashboard, and the **community channels** (Discord, GitHub Issues, email) for everything else. Fetcher failures are a third category — they surface in the Fetcher health panel and run logs rather than the bug reporter. This page covers all three.
+
+## Report a bug from the app
+
+When something goes wrong in the dashboard, Baklog captures uncaught errors and unhandled promise rejections automatically and surfaces a **sticky red toast** in the top-right corner of the browser. The last 200 errors are kept in browser `localStorage` — nothing is sent anywhere until you explicitly choose to do so.
+
+From the toast, the **Report a bug…** kebab menu item, or the `?debug=1` overlay, you have four actions available:
+
+- **Send report** — opens a consent dialog that shows the exact sanitized JSON payload before anything is transmitted. You can add an optional contact email and a note. Click **Send report** to POST the bundle to the maintainer. Nothing is sent until you confirm.
+- **Copy bug bundle** — copies the same payload to your clipboard without making any network request. Paste it directly into a [new GitHub issue](https://github.com/Ogrods/BAKLOG/issues/new) if you prefer that channel.
+- **Errors only** — copies just the error array, without the surrounding app context.
+- **Details** — expands the full stack trace inline in the toast so you can read it without leaving the page.
+
+<Tip>
+  To verify the bug reporter works before you actually need it: open DevTools, run `throw new Error('test')` in the console, and the sticky red toast should appear immediately. The **Report a bug…** dialog will show the scrubbed bundle preview. Nothing is POSTed until you click **Send report**.
+</Tip>
+
+To clear the error ring manually:
+
+```javascript
+localStorage.removeItem('baklog-error-log')
+```
+
+Run this in DevTools if you want to reset the stored errors without sending a report.
+
+<Note>
+  **Fetcher failures are separate from the bug reporter.** Store refresh problems — exit codes, empty results, auth failures — show up in the **Fetcher health** panel and in `profiles/<id>/cache/runs/*.jsonl` run logs. They are not captured by the JavaScript error handler and are not sent to the bug-report endpoint. See [Troubleshooting](/troubleshooting) for fetcher-specific fixes.
+</Note>
+
+## Community and support
+
+<CardGroup cols={2}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/baklog">
+    Beta chat, `#bug-reports`, and `#feature-requests`. Best for real-time questions and early feedback.
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/Ogrods/BAKLOG">
+    Full MIT source code. Browse the codebase, verify the privacy story, or submit a pull request.
+  </Card>
+  <Card title="GitHub Issues" icon="circle-dot" href="https://github.com/Ogrods/BAKLOG/issues/new">
+    The long-term record for reproducible bugs and feature requests. Attach a copied bug bundle here.
+  </Card>
+  <Card title="Email" icon="envelope" href="mailto:dan@baklog.app">
+    For invite requests or support questions that don't fit the public channels.
+  </Card>
+</CardGroup>
+
+<Note>
+  No app data is piped to Discord automatically. When filing a bug in `#bug-reports`, use **Send report** from the in-app toast, or use **Copy bug bundle** and paste the payload into your message — that gives the maintainer the context needed to reproduce the issue.
+</Note>
+
+## Before you ask
+
+Work through these three resources in order — most issues are already answered:
+
+1. **[Troubleshooting](/troubleshooting)** — auth failures, GOG 403s, empty results, stuck run queues, missing browsers, and platform-specific limits.
+2. **[Connecting Stores](/connecting-stores)** — per-store privacy settings, CLI fallbacks, and platform availability notes for each storefront.
+3. **[FAQ](/faq)** — free vs paid features, invite-only access, count differences, and privacy model.
+
+## Bug bundle contents
+
+When you send a report or copy a bug bundle, the payload contains:
+
+- **Errors** — the captured error messages and stack traces from the ring buffer (last 200 errors)
+- **App context** — version, current view, data version, active filter count, table fingerprint, last render time, and dashboard counters
+
+You can review every field in the consent dialog before anything is transmitted.
+
+## What is never included
+
+The following are **never** part of any bug report, clipboard copy, or network request made by the bug reporter:
+
+- Your personal notes or status changes
+- Library JSON (the games data fetched from stores)
+- Credentials, session cookies, or API keys of any kind
+
+This is by design. Your library and credentials stay on your machine.

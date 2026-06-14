@@ -1,0 +1,163 @@
+---
+title: "Baklog Dashboard: Analytics, Stats, and Picks"
+sidebarTitle: "Dashboard"
+description: "Explore Baklog's Dashboard tab — KPI cards, store and status donuts, HLTB histogram, 300+ sabermetric stats, and the tabbed Picks panel for deciding what to play next."
+---
+
+Baklog runs at **http://localhost:8765** when you start `python server.py` and opens to the Dashboard tab by default. Built on Chart.js, the Dashboard is a full analytics suite for your cross-store collection — KPI cards, donuts, histograms, a wishlist deal recap, and a rotating marquee of over 300 sabermetric stats. Four main content tabs plus a Connections tab organize everything the app offers.
+
+<Tip>
+  Not ready to install yet? The **[interactive demo at baklog.app/#demo](https://baklog.app/#demo)** mirrors the full app UX with sample data — no install, no sign-in required.
+</Tip>
+
+## Tabs
+
+| Tab | Purpose |
+|-----|---------|
+| **Dashboard** | Chart.js analytics (default view): KPI cards, store/status/review donuts, genre and tag charts, HLTB histogram, releases timeline, wishlist deal stats, top-rated and quick-wins lists, itch.io recap, and a rotating marquee of 300+ stats and sabermetrics |
+| **Library** | Deduped cross-store table of every game you own |
+| **Wishlist** | Deal radar across connected wishlists plus the Claimable Now free-game feed |
+| **itch.io** | Quarantined indie library — hides tools, soundtracks, and TTRPG PDFs by default; toggle to show all owned keys |
+| **Connections** | One-click store auth, encrypted credential storage, auto-refresh toggles, and the portable secrets bundle |
+
+## Dashboard analytics
+
+The Dashboard tab packs a full analytics view of your collection into a single scrollable page.
+
+**KPI cards** sit at the top: total games owned, backlog size, finished count, hours tracked, and similar headline numbers at a glance.
+
+**Donut charts** break your library down three ways — by store (Steam vs GOG vs Epic vs …), by status (Backlog, Playing, Finished, …), and by review tier — so you can see where your collection lives and how it skews.
+
+**Genre and tag charts** show the distribution across categories, helping you spot which genres dominate your backlog versus your finished pile.
+
+**HLTB histogram** plots your games by HowLongToBeat main-story hours, revealing whether your backlog leans toward short indie experiences or sprawling RPGs.
+
+**Releases timeline** visualises when your games came out — handy for spotting eras you've collected heavily.
+
+**Wishlist deal stats** surface pricing signals from your connected wishlists: how many items are on sale, how many are at their historical low, and what the average discount looks like right now.
+
+**Top-rated and quick-wins lists** highlight the highest-scored unplayed games and the shortest games you haven't touched yet — actionable picks surfaced right on the analytics page.
+
+**itch.io recap** summarises your quarantined indie library without you having to switch tabs.
+
+**Rotating stats marquee** — a scrolling ticker across the bottom of the analytics area cycles through more than 300 stats, insights, and baseball-style sabermetrics about your collection:
+
+- **Completion AVG** — your finished-to-owned batting average
+- **Backlog OPS** — a composite on-base-plus-slugging for backlog velocity
+- **BV+** — park-adjusted backlog value metric
+- **WAR** — wins above replacement for your time investment
+
+## Picks panel
+
+The tabbed Picks panel appears on both the Dashboard and Library views. It surfaces curated recommendations from your own library based on six lenses:
+
+| Pick type | What it recommends |
+|-----------|--------------------|
+| **Top Rated** | Unplayed or unfinished games with the highest review scores |
+| **Next Up** | Games explicitly marked with the Next status |
+| **Quick Wins** | Short games (low HLTB hours) you haven't started |
+| **Hidden Gems** | High-rated games you own that fly under the radar |
+| **Return To** | Games you started but left Unfinished |
+| **Wishlist Deals** | Wishlisted games currently on sale or at a historical low |
+
+## Status chips
+
+Baklog tracks seven playthrough statuses. Click any chip in the summary row to instantly filter the library to that status:
+
+| Status | Meaning |
+|--------|---------|
+| **Backlog** | Owned but not started |
+| **Next** | Queued as the next game to play |
+| **Playing** | Currently in progress |
+| **Unfinished** | Started but set aside |
+| **Live service** | An ongoing live-service game |
+| **Finished** | Completed to your satisfaction |
+| **Skip** | Owned but intentionally passing |
+
+Status-aware row styling and hidden-gem badges help the most relevant games stand out at a glance.
+
+## Filters and sorting
+
+<CardGroup cols={2}>
+  <Card title="Genre filters" icon="filter">
+    Multi-select genre chips with AND/OR toggle — AND mode shows only games that match every selected genre; OR mode shows any match.
+  </Card>
+  <Card title="Store filter chips" icon="store">
+    Filter the table to one or more stores. Multi-store rows show store badges directly on the row.
+  </Card>
+  <Card title="Priority Score column" icon="arrow-up-wide-short">
+    An optional sortable column that blends review score, HLTB length, status, and deal price into a single priority rank.
+  </Card>
+  <Card title="Pick-for-me randomizer" icon="shuffle">
+    Can't decide? The randomizer picks a game from the current filtered view and highlights it.
+  </Card>
+</CardGroup>
+
+An **A–Z jump nav** is pinned to the right edge on wide screens (xl+), letting you skip directly to any letter of your library.
+
+## Column picker
+
+The library, wishlist, and itch tables are fully customisable. Toggle columns to match your workflow:
+
+1. Click the three-bar **Columns** button in the toolbar.
+2. Toggle any data column on or off.
+3. **Game** and **Status** are always visible and cannot be hidden.
+
+Available optional columns: Cover, Score, Played, HLTB, Steam %, MC, Price, Released, Last played, Genres, Notes. Your visibility choices persist per view in your personal preferences.
+
+## Keyboard shortcuts
+
+Open the filter drawer footer to see the full shortcut list, or use them anywhere in the Library view:
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus the search box |
+| `↑` `↓` | Move row selection up or down |
+| `Enter` | Open the selected game's store page |
+| `Esc` | Close the active drawer or modal |
+| `B` `N` `P` `U` `L` `F` `S` | Set status on selected row (Backlog, Next, Playing, Unfinished, Live service, Finished, Skip) |
+| `Space` | Toggle row select for bulk actions |
+
+## Blacklist vs hidden list
+
+Baklog uses two distinct mechanisms to keep your library clean. They are not interchangeable:
+
+| | **Blacklist** | **Hidden list** |
+|---|---|---|
+| **What** | Entries that aren't games — store apps, DLC skins, soundtracks, internal entitlement slugs | Real games you choose not to see in the main view |
+| **Who decides** | Built into Baklog | You |
+| **Editable** | No — never shown, cannot be restored | Yes — restore any entry from the **Hidden games** panel |
+
+The **blacklist** removes noise that is never a game. The **hidden list** is a personal preference for games you own but don't want cluttering your view. When you hide a game, it moves to the Hidden games panel where you can restore it at any time.
+
+## Personal data storage
+
+When you launch via `python server.py`, your statuses, notes, priorities, tags, UI preferences, and manually added games are saved to `data/personal.json` (or `profiles/<id>/data/personal.json` in multi-profile mode).
+
+- **Source of truth** — `data/personal.json` is what matters. Back it up, sync it via Dropbox or OneDrive, or copy it to another machine.
+- **Atomic writes** — the dev server writes to a temp file and renames it, so a crash mid-write never corrupts your data.
+- **Rolling backups** — timestamped backup copies land automatically in `data/personal_backups/`.
+- **Browser localStorage** — used as a hot cache, overwritten from `data/personal.json` on every boot. **Server always wins.**
+
+If you serve read-only via `python -m http.server`, the dashboard falls back to `localStorage`. Use **Export notes** / **Import notes** in the toolbar menu for manual backups in that mode.
+
+## Paid tier highlights
+
+Baklog is free forever to import and browse. The optional **$5/mo** ($50/yr) paid tier adds power-user conveniences without removing anything from the free experience:
+
+<CardGroup cols={2}>
+  <Card title="No sponsored deal cards" icon="ban">
+    Remove promoted listings from the Wishlist deal radar.
+  </Card>
+  <Card title="Scheduled refresh" icon="clock">
+    Refresh stale stores on a schedule even when the app is closed — no manual scripts required.
+  </Card>
+  <Card title="Deep trophy sync" icon="trophy">
+    Full achievement and trophy re-pull. Free tier shows cached percentage only.
+  </Card>
+  <Card title="Bonus claimables feed" icon="gift">
+    Expands Claimable Now to include DLC, add-ons, and in-game bonus items alongside full game giveaways.
+  </Card>
+</CardGroup>
+
+See [FAQ](/faq) for the full free-vs-paid breakdown.

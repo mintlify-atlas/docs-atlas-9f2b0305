@@ -1,0 +1,307 @@
+---
+title: "Connect Your Game Stores to Baklog"
+sidebarTitle: "Connecting Stores"
+description: "Link Steam, GOG, PlayStation, Epic, Xbox, and nine more storefronts to Baklog using one-click browser sign-in or API keys. Credentials stay encrypted on your machine."
+---
+
+The **Connections** tab is the single place you manage every store. Click **Connect** next to a store and Baklog opens a headed Chrome or Edge window for cookie or OAuth sign-in. Once you authenticate, credentials are encrypted immediately in `cache/auth/` using your OS keyring (Windows Credential Manager, macOS Keychain, Linux Secret Service) with an AES-GCM file fallback — they never leave your machine. After connecting, Baklog auto-fetches the store by default and opens the fetcher log so you can watch your library land in real time. You can also run any fetcher from the **Fetcher health** row in the dashboard or directly from the terminal using the commands below.
+
+<Tip>
+  Use the **Connections** tab rather than editing `.env` directly. The Connections tab stores credentials in encrypted per-profile storage, handles token refresh automatically, and works on all platforms. The `.env` file is a legacy fallback: on first `python server.py` start, any credentials found there are imported once into the default profile's encrypted store and the file is archived as `.env.imported`.
+</Tip>
+
+Baklog supports **19 store connections** across **12 libraries** and **8 wishlists** (27 fetcher jobs in total). Wishlist JSON files are optional per store — the **Fetcher health** row marks any file not yet fetched as *missing*, which is normal until you run the matching script.
+
+## Fetcher options (all stores)
+
+Every fetcher script accepts a common set of CLI flags:
+
+| Flag | Effect |
+|------|--------|
+| `--refresh` | Ignore the local cache and refetch everything from the store. Equivalent to Shift+clicking a library or wishlist chip in the dashboard. |
+| `--retry-misses` | Re-attempt enricher rows that were previously cached as no match (HLTB, Reviews, Covers). Equivalent to Shift+clicking an enricher chip. |
+| `--only-new` | Only fetch games not already present in the store's JSON file. Useful for incremental updates on large libraries. |
+| `--skip-hltb` | Skip HowLongToBeat lookups during the fetch. Makes the run significantly faster when you only need ownership data. |
+| `--allow-empty` | Allow writing a zero-item result to disk. By default, fetchers refuse to overwrite existing data with an empty result to preserve your library if a session has expired. |
+
+**Exit codes:** `0` success · `1` runtime or config error · `2` suspicious empty result (drift guard refused write) · `3` drift guard refused write due to unexpectedly large drop · `4` auth failure. See [Refresh and Enrichment](/refresh-and-enrichment) for full exit-code details.
+
+---
+
+## Steam
+
+**Connections tab:** Steam → **Connect**. Baklog captures your API key automatically.
+
+**Privacy requirement:** set **Game details** to **Public** in Steam → Profile → Edit Profile → Privacy Settings. Without this the Steam Web API returns an empty library.
+
+**CLI fallback:** set `STEAM_API_KEY` and `STEAM_ID` in `.env`.
+
+```bash
+python fetch_games.py
+```
+
+Writes `games_steam.json`. The first run on a large library may take several minutes due to Store API rate limits. Subsequent runs use cache and are much faster.
+
+---
+
+## GOG
+
+GOG has two sources that feed one output file. Baklog picks automatically based on what is available.
+
+| Source | Connections card | When to use |
+|--------|-----------------|-------------|
+| **Galaxy (local)** | GOG Galaxy (launcher) | Richest data, read from `galaxy-2.0.db` in Windows ProgramData or macOS Shared. No Linux path — use the web source on Linux. Optional path override: `GOG_GALAXY_DB=`. |
+| **Web** | GOG (web) | Any OS. Sign in at gog.com for a library and wishlist session cookie. |
+
+`fetch_gog.py` auto-picks the Galaxy DB when it is present, otherwise uses the saved web session. Override with `--source local|web` or `GOG_SOURCE=` in `.env`.
+
+```bash
+python fetch_gog.py
+python fetch_gog_wishlist.py    # optional — needs GOG web session
+```
+
+Writes `games_gog.json` and `games_wishlist_gog.json`.
+
+**CLI fallback:** copy the `gog-al` cookie from DevTools → Application → Cookies while signed in at gog.com and paste it into `GOG_AL=` in `.env`.
+
+If the web fetch returns **403 Forbidden**, reconnect GOG on the Connections tab to refresh the session cookie. On Windows or macOS with GOG Galaxy installed, prefer `python fetch_gog.py --source local` for the richest data.
+
+---
+
+## PlayStation (PSN)
+
+**Connections tab:** PlayStation → **Connect** and sign in at the PlayStation Store.
+
+**Privacy requirement:** set your trophy and game library privacy to **Anyone** in your PlayStation account privacy settings so the library and trophy data can load.
+
+```bash
+python fetch_psn.py
+```
+
+Writes `games_psn.json`.
+
+**CLI fallback:** open [https://ca.account.sony.com/api/v1/ssocookie](https://ca.account.sony.com/api/v1/ssocookie) while signed in to your PlayStation account and paste the returned `npsso` token value into `PSN_NPSSO=` in `.env`.
+
+---
+
+## Epic (library)
+
+**Connections tab:** Epic (library) → **Connect**. Baklog opens a browser window, captures the authorization code, and exchanges it automatically.
+
+```bash
+python fetch_epic.py
+```
+
+Writes `games_epic.json`.
+
+**CLI fallback:** run `python fetch_epic.py --auth-help` to get instructions for capturing the auth code manually, then paste it into `EPIC_AUTH_CODE=` in `.env`.
+
+---
+
+## Epic (wishlist)
+
+The Epic wishlist uses a separate session from the library OAuth connection.
+
+**Connections tab:** Epic (wishlist) → **Connect** at the Epic Games Store wishlist page. If Cloudflare shows a challenge page, clear it in the browser window before Baklog saves the session. `fetch_epic_wishlist.py` reuses the saved browser profile headlessly on subsequent runs.
+
+```bash
+python fetch_epic_wishlist.py
+```
+
+Writes `games_wishlist_epic.json`.
+
+---
+
+## Amazon Games
+
+Amazon has two sources that feed one output file. Baklog picks automatically.
+
+| Source | Connections card | When to use |
+|--------|-----------------|-------------|
+| **Launcher (Windows)** | Amazon Games (launcher) | Richest data — art, last played — from the local SQLite database. Optional path override: `AMAZON_GAMES_SQL_DIR=`. |
+| **Prime Gaming (web)** | Amazon (Prime Gaming, web) | Any OS. Imports Amazon-fulfilled claims only (skips Epic/Steam key drops). |
+
+`fetch_amazon.py` auto-picks the launcher DB on Windows when present, otherwise uses the saved web session. Override with `--source launcher|web` or `AMAZON_SOURCE=` in `.env`.
+
+```bash
+python fetch_amazon.py
+python fetch_amazon.py --source web --dump-raw    # debug: writes cache/amazon_web_raw.json
+```
+
+Writes `games_amazon.json`.
+
+**macOS and Linux:** the launcher DB is Windows-only. Use the Prime Gaming web card and `--source web` flag on other platforms.
+
+---
+
+## Xbox (play history)
+
+**Connections tab:** Xbox → **Connect** at [xbl.io](https://xbl.io/login), or paste an existing OpenXBL API key directly into the card. OpenXBL keys are free.
+
+```bash
+python fetch_xbox.py --skip-hltb
+```
+
+Writes `games_xbox.json`. Covers your Xbox, Game Pass, and Microsoft Store titles.
+
+---
+
+## Xbox Store wishlist
+
+The Xbox Store wishlist is a separate connection from play history.
+
+**Connections tab:** Xbox Store wishlist → **Connect** on xbox.com.
+
+```bash
+python fetch_xbox_wishlist.py
+```
+
+Writes `games_wishlist_xbox.json`.
+
+---
+
+## Battle.net (unofficial)
+
+**Connections tab:** Battle.net → **Connect** and sign in at [account.battle.net](https://account.battle.net/). The managed browser saves your session cookie locally for headless reuse.
+
+```bash
+python fetch_battlenet.py --skip-hltb
+```
+
+Writes `games_battlenet.json`.
+
+<Warning>
+  **Windows app-bound encryption:** Chrome and Edge v127+ use app-bound cookie encryption on Windows, which can block the legacy fetch-time browser cookie-jar read. The Connections tab and its stored encrypted session avoids this issue entirely. If you prefer the CLI fallback, use Firefox (`--browser firefox`) — its cookie jar is readable without admin rights — or copy the full `Cookie:` header from DevTools (Network → `games-and-subs` request) into `BATTLENET_COOKIE=` in `.env` and run `python fetch_battlenet.py --browser env --skip-hltb`.
+</Warning>
+
+**CLI fallback:** DevTools → Network → reload the Battle.net page → click the `games-and-subs` request → Headers → copy the full `Cookie:` request header value into `BATTLENET_COOKIE=` in `.env`, then run:
+
+```bash
+python fetch_battlenet.py --browser env --skip-hltb
+```
+
+---
+
+## Ubisoft Connect (unofficial)
+
+**Connections tab:** Ubisoft Connect → **Connect**. One sign-in covers both the Ubisoft library and the Ubisoft Store wishlist.
+
+```bash
+python fetch_ubisoft.py --skip-hltb
+python fetch_ubisoft_wishlist.py
+```
+
+Writes `games_ubisoft.json` and `games_wishlist_ubisoft.json`.
+
+**CLI fallback:** sign in at ubisoft.com or connect.ubisoft.com, then open DevTools → Network → filter for `public-ubi` → click any request → scroll to Request Headers and copy the `Authorization` value (starts with `Ubi_v1 t=...`) into `UBISOFT_AUTH=` and the `Ubi-SessionId` UUID into `UBISOFT_SESSION_ID=` in `.env`.
+
+---
+
+## Nintendo eShop
+
+**Connections tab:** Nintendo → **Connect**.
+
+**Coverage limit:** the Nintendo eShop API only exposes approximately two years of digital purchase history. Cartridge purchases and older digital titles must be added manually via the **Manual games** panel in the dashboard.
+
+```bash
+python fetch_nintendo.py --skip-hltb
+```
+
+Writes `games_nintendo.json`.
+
+**CLI fallback:** sign in at [ec.nintendo.com/my/transactions](https://ec.nintendo.com/my/transactions/), open DevTools → Network → filter for `transactions` → click a transactions request → copy the `Cookie` request header value into `NINTENDO_COOKIE=` in `.env`.
+
+---
+
+## Nintendo Store wishlist
+
+The Nintendo Store wishlist uses a separate connection from the eShop library login.
+
+**Connections tab:** Nintendo Store wishlist → **Connect** on nintendo.com.
+
+```bash
+python fetch_nintendo_wishlist.py
+```
+
+Writes `games_wishlist_nintendo.json`.
+
+---
+
+## itch.io
+
+itch.io has two sources that feed one output file.
+
+| Source | Connections card | When to use |
+|--------|-----------------|-------------|
+| **Butler (local)** | itch butler (local) | Owned library and playtime from the itch app's local `butler.db`. Works on Windows, macOS, and Linux. No API key required when the DB is present. |
+| **API** | itch.io (API key) | Richer metadata including publisher and full tag lists. Generate a key at [itch.io/user/settings/api-keys](https://itch.io/user/settings/api-keys). |
+
+`fetch_itch.py` auto-picks the butler DB when present, otherwise uses the API key. Override with `--source local|api` or `ITCH_SOURCE=` in `.env`.
+
+```bash
+python fetch_itch.py --skip-hltb
+python enrich_steam_reviews.py --stores itch    # optional: backfill Steam review scores
+```
+
+Writes `games_itch.json`. The file includes all owned keys — games, tools, TTRPG PDFs, and soundtracks. The **itch.io** tab in the dashboard hides non-game entries by default; toggle to show everything.
+
+**CLI fallback:** generate an API key at [itch.io/user/settings/api-keys](https://itch.io/user/settings/api-keys) and set `ITCH_API_KEY=` in `.env`.
+
+---
+
+## Humble Bundle
+
+**Connections tab:** Humble Bundle → **Connect** at humblebundle.com (the library page). One profile connection unlocks both the library and Store wishlist fetchers.
+
+```bash
+python fetch_humble.py --skip-hltb
+python fetch_humble_wishlist.py
+```
+
+Writes `games_humble.json` and `games_wishlist_humble.json`.
+
+---
+
+## EA App
+
+**Connections tab:** EA App → **Connect** at ea.com.
+
+```bash
+python fetch_ea.py
+```
+
+Writes `games_ea.json`.
+
+---
+
+## IsThereAnyDeal (ITAD)
+
+ITAD provides deal prices and historical-low data for the Wishlist tab. It is not a game library source.
+
+**Connections tab:** IsThereAnyDeal → enter your free API key from [isthereanydeal.com/dev/api/](https://isthereanydeal.com/dev/api/).
+
+```bash
+python fetch_itad.py
+```
+
+Writes `itad_prices.json`.
+
+**Display currency and FX rates:** set `ITAD_COUNTRY` (ISO 3166-1 alpha-2, e.g. `GB`) before running `fetch_itad.py` to display prices in your region's currency. The script caches daily exchange rates from [Frankfurter](https://www.frankfurter.app/) and writes comparable `price_amount` fields on wishlist JSON while keeping `price_native` and `currency_native` for the store's real price. Re-run ITAD after any wishlist fetch to refresh deal conversions.
+
+**CLI fallback:** set `ITAD_API_KEY=` in `.env`.
+
+---
+
+## Platform availability
+
+| Store / source | Windows | macOS | Linux |
+|----------------|:-------:|:-----:|:-----:|
+| Steam, GOG (web), PSN, Epic, Xbox, Battle.net, Ubisoft, Nintendo, itch.io (API), Humble, EA, ITAD | ✓ | ✓ | ✓ |
+| Amazon (Prime Gaming, web) | ✓ | ✓ | ✓ |
+| itch butler (local `butler.db`) | ✓ | ✓ | ✓ |
+| GOG Galaxy (local `galaxy-2.0.db`) | ✓ | ✓ | ✗ (no Linux Galaxy path) |
+| Amazon Games (launcher DB) | ✓ | ✗ | ✗ |
+
+Platform-restricted local sources show as **Unavailable** on unsupported operating systems. Their fetcher chips remain enabled when a web fallback exists — for example, the Amazon chip stays active on macOS and Linux because the Prime Gaming web source is available.
+
+For common auth errors, 403 responses, and empty-result fixes, see [Troubleshooting](/troubleshooting).

@@ -1,0 +1,163 @@
+---
+title: "Get Started with Baklog in Three Steps"
+sidebarTitle: "Getting Started"
+description: "Install Baklog, start the local server, and open your cross-store game dashboard. Requires Python 3.11+ and Google Chrome or Edge."
+---
+
+This page walks you through installing Baklog, launching the local server for the first time, and triggering your first library fetch. By the end you will have the dashboard open at `http://localhost:8765` with at least one store connected and your games appearing in the Library tab. The whole process takes about five minutes for a typical setup.
+
+## Requirements
+
+| Requirement | Details |
+|-------------|---------|
+| **Python 3.11+** | A virtual environment is strongly recommended. |
+| **Google Chrome, Chromium, or Microsoft Edge** | Required for the Connections sign-in flow (cookie and OAuth capture). Override the detected browser path with `BAKLOG_CHROME_PATH` if needed. Edge ships with Windows and works as a drop-in replacement. |
+| **Operating system** | Windows 10/11 (primary development target). macOS and Linux are supported with store-level limits — see [Connecting Stores](/connecting-stores) for the platform matrix. |
+
+<Warning>
+  **Windows users: do not use the Microsoft Store `python.exe` stub.** Fetcher subprocesses launched from the stub can hang `subprocess.Popen` and wedge the run queue. Always use the project `.venv` Python instead. `server.py` auto-picks `.venv` when it is present in the project directory.
+</Warning>
+
+## Install
+
+<Steps>
+  <Step title="Clone or download the repository">
+    Get the Baklog source from GitHub. You can clone with Git or download a ZIP from the repository page.
+
+    ```bash
+    git clone https://github.com/Ogrods/BAKLOG.git
+    cd BAKLOG
+    ```
+  </Step>
+  <Step title="Create a virtual environment and install dependencies">
+    Create a `.venv` in the project directory, activate it, and install the required packages.
+
+    ```bash
+    python -m venv .venv
+    ```
+
+    ```bash
+    # Windows
+    .venv\Scripts\activate
+    pip install -r requirements.txt
+    ```
+
+    ```bash
+    # macOS / Linux
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    ```
+
+    Developers and CI can use `pip install -e ".[dev]"` (or `requirements-dev.txt`) instead to get the full dev toolchain including pytest and ruff.
+  </Step>
+  <Step title="Copy .env.example to .env (optional, legacy)">
+    Baklog stores credentials in encrypted per-profile storage managed from the **Connections** tab — you do not need a `.env` file for normal use. If you prefer the legacy file-based approach (for example, for scripted or headless setups), copy the example and fill in your credentials:
+
+    ```bash
+    # Windows
+    copy .env.example .env
+
+    # macOS / Linux
+    cp .env.example .env
+    ```
+
+    On first `python server.py` start, any credentials present in `.env` are imported once into the default profile's encrypted store and the file is archived as `.env.imported`. After that, manage credentials from the Connections tab.
+  </Step>
+</Steps>
+
+## Run the dashboard
+
+Start the bundled dev server, which serves the dashboard and lets you trigger fetchers directly from the **Fetcher health** row in the UI:
+
+<CodeGroup>
+```bash Recommended
+python server.py
+```
+
+```powershell Windows shortcut
+.\scripts\start-server.ps1
+```
+
+```bash Read-only mode
+python -m http.server 8080
+```
+</CodeGroup>
+
+Then open **http://localhost:8765** in your browser.
+
+**Read-only mode** (`python -m http.server 8080`) lets you browse an existing library and run fetchers from the terminal, but personal edits fall back to browser `localStorage` instead of `data/personal.json`. Use it if you want a lightweight browse-only session.
+
+<Warning>
+  Do **not** open `index.html` directly from your file manager or browser. Browsers block ES module loading from `file://` URLs. Always access the dashboard through one of the server options above.
+</Warning>
+
+## Steam-specific setup
+
+Steam requires a few one-time steps before your first fetch.
+
+1. **Get a Steam Web API key** at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey). Use `localhost` as the domain. The Connections tab can grab this automatically, but having it on hand speeds things up.
+
+2. **Find your SteamID64** at [steamid.io](https://steamid.io). It is a 17-digit number starting with `7656119`.
+
+3. **Set Game details to Public** in Steam → Profile → Edit Profile → Privacy Settings. Without this, the Steam Web API returns an empty library.
+
+Once these are in place, connect Steam from the Connections tab and click the Steam chip in **Fetcher health**, or run the fetcher directly:
+
+```bash
+python fetch_games.py
+```
+
+The first run on a large library may take several minutes due to Steam Store API rate limits. Subsequent runs use the local cache and are much faster.
+
+## Optional: system tray
+
+Keep Baklog running in the background with a system tray icon. The tray app starts the same local server, opens your browser, and gives you **Open**, **Restart**, and **Quit** from the menu.
+
+Install the tray dependencies and launch:
+
+```powershell
+pip install pystray Pillow
+.\.venv\Scripts\pythonw.exe tray_app.py
+```
+
+Or build a portable folder that includes its own `.venv` and tray launcher batch files:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build_installer.ps1
+# then run: dist\baklog\Start BAKLOG (tray).bat
+```
+
+The tray menu can also register Baklog as a login startup item (Windows registry, macOS LaunchAgent, or Linux XDG autostart). Note that the PyInstaller `BAKLOG.exe` bundle is server-only and does not include the tray icon — use the tray launcher or `refresh.ps1` / your OS scheduler for closed-app refresh.
+
+## Optional: production frontend build
+
+Dev mode serves raw ES modules with `Cache-Control: no-store` — no `npm` required for everyday use. For a smaller, cacheable production bundle with hashed assets:
+
+```bash
+npm ci
+npm run build
+```
+
+```powershell
+# PowerShell — set the env var then start the server
+$env:BAKLOG_SERVE_BUILT='1'; python server.py
+```
+
+Hashed assets under `dist/` receive `immutable` long-term cache headers. `index.html` stays `no-store` so the app always boots fresh.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Connecting Stores" icon="plug" href="/connecting-stores">
+    Per-store Connect steps, CLI fallbacks, fetcher flags, and the platform availability matrix.
+  </Card>
+  <Card title="Dashboard" icon="chart-bar" href="/dashboard">
+    Tabs, filters, statuses, deal radar, and the Picks panel.
+  </Card>
+  <Card title="FAQ" icon="circle-question" href="/faq">
+    Free vs paid, privacy, invite-only access, and no-games-yet entry paths.
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/troubleshooting">
+    Auth failures, 403 errors, empty results, and common fixes.
+  </Card>
+</CardGroup>

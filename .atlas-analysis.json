@@ -1,0 +1,104 @@
+{
+  "projectType": "saas",
+  "projectName": "Baklog",
+  "projectDescription": "A local-first cross-store game backlog manager that pulls your entire library across Steam, GOG, PlayStation, Epic, Xbox, and nine more storefronts into one unified dashboard — all running on your own machine, credentials never leaving your computer.",
+  "theme": "almond",
+  "primaryColor": "#ffffff",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "getting-started",
+              "connecting-stores"
+            ]
+          },
+          {
+            "group": "Using Baklog",
+            "pages": [
+              "dashboard",
+              "library-and-wishlist",
+              "refresh-and-enrichment",
+              "profiles-and-moving"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "fetcher-reference",
+              "configuration",
+              "privacy-and-security"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": [
+              "troubleshooting",
+              "faq",
+              "getting-help"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Cross-store library aggregation across 12 stores (Steam, GOG, PSN, Epic, Xbox, Battle.net, Ubisoft, Nintendo, itch.io, Humble, EA, Amazon)",
+    "Local-only: all credentials and library data stay on your machine, never sent to a server",
+    "Connections tab: one-click browser-based sign-in with OS keyring + AES-GCM encrypted credential storage",
+    "Dashboard analytics: KPI cards, store/status/review donuts, genre charts, HLTB histogram, 300+ sabermetric stats",
+    "Wishlist deal radar with Claimable Now free-game feed (Epic, GamerPower, ITAD)",
+    "Auto-fetch on connect and auto-refresh for stale stores (24h threshold)",
+    "Enrichment pipeline: HowLongToBeat hours, ProtonDB tiers, Steam reviews, cross-store cover art",
+    "Multi-profile support with optional PIN gate and portable secrets bundle for moving machines",
+    "Optional $5/mo paid tier: background scheduled refresh, deep trophy sync, no sponsored deal cards",
+    "System tray launcher and PyInstaller BAKLOG.exe portable build"
+  ],
+  "publicApiSurface": [
+    "GET /api/runs",
+    "POST /api/run/<key>",
+    "POST /api/run/<run_id>/cancel",
+    "POST /api/runs/cancel",
+    "GET /api/stream/<run_id>",
+    "GET /api/personal",
+    "PUT /api/personal",
+    "GET /api/profiles",
+    "POST /api/profiles",
+    "POST /api/profiles/active",
+    "PUT /api/profiles/<id>",
+    "DELETE /api/profiles/<id>",
+    "GET /api/auth/status",
+    "POST /api/auth/<p>/start",
+    "GET /api/auth/<id>/stream",
+    "PUT /api/auth/<p>/credentials",
+    "POST /api/auth/<p>/disconnect",
+    "POST /api/auth/secrets/export",
+    "POST /api/auth/secrets/import",
+    "GET /oauth/epic/callback",
+    "python fetch_games.py (Steam)",
+    "python fetch_gog.py",
+    "python fetch_psn.py",
+    "python fetch_epic.py",
+    "python fetch_amazon.py",
+    "python fetch_xbox.py",
+    "python fetch_battlenet.py",
+    "python fetch_ubisoft.py",
+    "python fetch_nintendo.py",
+    "python fetch_humble.py",
+    "python fetch_itch.py",
+    "python fetch_wishlist.py",
+    "python enrich_hltb.py",
+    "python enrich_steam_reviews.py",
+    "python enrich_cross_store_images.py",
+    "python enrich_protondb.py",
+    "python -m enrichers hltb|steam-reviews|cross-store-images",
+    "python server.py",
+    "python tray_app.py"
+  ]
+}

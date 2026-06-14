@@ -1,0 +1,82 @@
+---
+title: "Baklog: One Honest Backlog Across Every Store"
+sidebarTitle: "Introduction"
+description: "Baklog is a local-first game backlog manager that unifies 12 storefronts into one deduplicated library on your machine. MIT open source, invite-only beta."
+---
+
+Baklog pulls every game you own into one local, honest table. Connect your stores once — Steam, GOG, PlayStation, Epic, Amazon, Xbox, Battle.net, Ubisoft Connect, Nintendo Switch, itch.io, Humble Bundle, and EA App — and Baklog brings everything back to a single deduplicated library that runs entirely on your machine. There is no cloud backend, no server holding your credentials, and no library data leaving your device. Twelve libraries and eight wishlists, all in one place, free forever to import. Whether you have thousands of games spread across a decade of storefronts or you are just building your first backlog, Baklog gives you the honest picture of what you actually own and what is worth playing next.
+
+<Note>
+  Baklog is currently **invite-only early access**. Request access at [baklog.app](https://baklog.app) to get in. The full app is open source (MIT) — you can read the code on [GitHub](https://github.com/Ogrods/BAKLOG) while you wait.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="rocket" href="/getting-started">
+    Install Baklog, start the local server, and open your dashboard in three steps.
+  </Card>
+  <Card title="Connecting Stores" icon="plug" href="/connecting-stores">
+    Link Steam, GOG, PlayStation, Epic, and nine more storefronts with one-click sign-in.
+  </Card>
+  <Card title="Dashboard" icon="chart-bar" href="/dashboard">
+    Explore your cross-store library, wishlist deal radar, and 300+ backlog stats.
+  </Card>
+  <Card title="FAQ" icon="circle-question" href="/faq">
+    Free vs paid, privacy story, invite-only access, and no-games-yet entry paths.
+  </Card>
+</CardGroup>
+
+## Supported stores
+
+Baklog connects to twelve game libraries and eight wishlists. Every store is fetched locally — your credentials never pass through a Baklog server.
+
+| Store | Notes |
+|-------|-------|
+| **Steam** | Library via Steam Web API. Requires a free API key and a public Game details privacy setting. |
+| **GOG** | Library from the local Galaxy database (Windows/macOS) or a web session (any OS). Includes wishlist. |
+| **PlayStation (PSN)** | Library via your NPSSO session token. Requires trophy and game privacy set to Anyone. |
+| **Epic Games Store** | Library via OAuth. One-click Connect captures and exchanges the auth code automatically. Includes wishlist. |
+| **Amazon Games** | Library from the Amazon Games launcher SQLite database (Windows) or Prime Gaming web claims (any OS). |
+| **Xbox** | Play history and Game Pass titles via the OpenXBL API. Free API key from xbl.io. Includes Store wishlist. |
+| **Battle.net** | Unofficial connection via browser session cookie. Fetches your Blizzard game library. |
+| **Ubisoft Connect** | Unofficial connection via Authorization and Ubi-SessionId headers. Includes Ubisoft Store wishlist. |
+| **Nintendo eShop** | Unofficial connection via session cookie. Covers approximately the last two years of digital purchase history. Includes Store wishlist. |
+| **itch.io** | Library via your itch.io API key or the local itch app butler database. |
+| **Humble Bundle** | Library from your Humble account. Includes Humble Store wishlist. |
+| **EA App** | Library via your EA account session. |
+
+## How it works
+
+<Steps>
+  <Step title="Connect your stores">
+    Open the **Connections** tab in the Baklog dashboard and click **Connect** for each store you use. A headed Chrome or Edge browser window opens for cookie or OAuth sign-in. Credentials are encrypted immediately in your OS keyring (Windows Credential Manager, macOS Keychain, Linux Secret Service) with an AES-GCM file fallback — they never leave your machine.
+  </Step>
+  <Step title="Fetch your libraries">
+    After connecting, Baklog auto-fetches each store by default and opens the fetcher log so you can watch your library land in real time. Fetcher chips in the **Fetcher health** row light up as each store completes. A large Steam library on first run may take a few minutes due to Store API rate limits; subsequent runs use cache and are much faster.
+  </Step>
+  <Step title="Explore your backlog">
+    Browse four tabs — **Dashboard** (Chart.js analytics and KPI cards), **Library** (deduplicated cross-store table with status, HLTB hours, and deal prices), **Wishlist** (deal radar with historical-low alerts), and **itch.io** (quarantined indie library). Over 300 rotating stats and baseball-style sabermetrics give you a new angle on your backlog every time you open the app.
+  </Step>
+  <Step title="Stay current automatically">
+    While Baklog is open, auto-refresh quietly updates any store older than 24 hours every ~30 minutes. ITAD deal prices refresh on a 15–60 minute schedule. The optional paid tier ($5/mo) adds scheduled refresh that runs even when the app is closed, so your library is always up to date without babysitting fetcher chips.
+  </Step>
+</Steps>
+
+## Supported platforms
+
+| OS | Status | Notes |
+|----|--------|-------|
+| **Windows 10/11** | Full support | Primary development target. All stores and local sources supported. |
+| **macOS** | Supported with limits | Amazon Games (launcher DB) is unavailable; use Amazon Prime Gaming web instead. GOG Galaxy local source works on macOS. |
+| **Linux** | Supported with limits | Amazon Games (launcher DB) and GOG Galaxy (local) are both unavailable. Use Amazon Prime Gaming web and GOG web session instead. |
+
+The Baklog app itself — dashboard, `server.py`, secret storage, and browser sign-in — is fully OS-agnostic. Platform-restricted local sources show as **Unavailable** on unsupported operating systems, but their fetcher chips remain active when a web fallback exists.
+
+**Windows-only local sources:** the Amazon Games launcher reads a DPAPI-encrypted SQLite database with no portable equivalent. The GOG Galaxy local source reads `galaxy-2.0.db` from the Galaxy install directory (Windows ProgramData or macOS Shared) — there is no supported Linux path.
+
+## Open source
+
+Baklog is released under the [MIT license](https://github.com/Ogrods/BAKLOG/blob/main/LICENSE). The full app — server, fetchers, auth helpers, and dashboard — lives in the [public GitHub repo](https://github.com/Ogrods/BAKLOG). You can read every line of code that touches your credentials and library data and verify the privacy story yourself.
+
+Your library JSON and credentials stay on your machine. The local app does not phone home. See [PRIVACY.md](https://github.com/Ogrods/BAKLOG/blob/main/PRIVACY.md) for the full data-handling story and [SECURITY.md](https://github.com/Ogrods/BAKLOG/blob/main/SECURITY.md) for the threat model. The marketing site at [baklog.app](https://baklog.app) has a separate waitlist and optional bug-report endpoint — those are documented in PRIVACY.md under Hosted surfaces.
+
+Optional paid features ($5/mo) are conveniences built on the same open codebase — no fork, no lock-in, no library data in our cloud.

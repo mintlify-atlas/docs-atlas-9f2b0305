@@ -1,0 +1,108 @@
+---
+title: "Library and Wishlist: Browse and Find Deals"
+sidebarTitle: "Library & Wishlist"
+description: "Baklog's Library tab deduplicates your cross-store game collection. The Wishlist tab surfaces deal prices, historical lows, and the Claimable Now free-game feed."
+---
+
+The **Library** tab brings every game you own — across Steam, GOG, Epic, PlayStation, Xbox, Amazon, Battle.net, Ubisoft, Nintendo, Humble, itch.io, and EA App — into a single deduplicated table. The **Wishlist** tab turns your connected wishlists into a deal radar, highlighting sales, historical price lows, and free claimable games. Both tabs stay ownership-aware: if you already own a wishlisted game on another store, Baklog can flag or hide it automatically.
+
+<Note>
+  ITAD deal prices auto-refresh every 15–60 minutes while the dashboard is open, so the prices you see are nearly always current without any manual action.
+</Note>
+
+## Library tab
+
+The Library is a deduplicated cross-store table. When you own the same title on multiple stores, Baklog collapses them into one row and shows **store badges** directly on that row so you can see every place you own it at a glance.
+
+Key library features:
+
+- **Inline HLTB override** — if HowLongToBeat's detected hours aren't right for your play style, click the HLTB cell and type your own estimate. Your override is stored in `data/personal.json`.
+- **Compact Main/Extra/Completionist display** — the HLTB column shows all three times in a condensed format without taking up extra column space.
+- **Inline status and notes editing** — click a status chip or a notes cell to edit in place. No modal required.
+- **Multi-select for bulk status changes** — tick multiple rows with `Space` or checkboxes, then set status for all selected games at once.
+
+## Filtering the library
+
+The toolbar above the library table gives you several ways to narrow down thousands of games:
+
+<CardGroup cols={2}>
+  <Card title="Search" icon="magnifying-glass">
+    Type to filter by game title. Press `/` anywhere in the app to jump straight to the search box.
+  </Card>
+  <Card title="Genre filters" icon="filter">
+    Multi-select chips with AND/OR toggle. AND mode requires a game to match every selected genre; OR mode matches any.
+  </Card>
+  <Card title="Store filter chips" icon="store">
+    Show only games from one or more stores. Multi-store rows stay visible as long as one of their stores is selected.
+  </Card>
+  <Card title="Status chips" icon="circle-check">
+    Click any of the seven status chips in the summary row to filter to that status instantly.
+  </Card>
+</CardGroup>
+
+**Smart sorting** — click any column header to sort. The optional **Priority Score** column blends review score, HLTB length, status, and deal price into a single rank for when you want Baklog to make the call.
+
+**A–Z jump nav** — pinned to the right edge on wide screens, lets you skip directly to any letter of your sorted library.
+
+## Wishlist tab
+
+The Wishlist tab aggregates your wishlists from every connected store and layers deal data from IsThereAnyDeal on top. Supported stores for wishlist sync:
+
+Steam · GOG · Epic · Humble · Xbox · PSN · Nintendo · Xbox Store
+
+**Filter controls** let you zero in on the best opportunities:
+
+| Filter | Effect |
+|--------|--------|
+| **On Sale** | Show only games currently discounted |
+| **Historical Low** | Show only games at or near their lowest recorded price |
+| **Min Discount %** | Hide deals below a threshold (e.g. only 40%+ off) |
+| **Max Price** | Hide anything above a price ceiling you set |
+| **Hide already owned** | Cross-reference your Library and suppress games you already own on another store |
+
+## Claimable Now
+
+The Claimable Now feed surfaces free games you can claim right now, pulled from three sources:
+
+- **Epic Games Store** — weekly free game rotation
+- **GamerPower** — aggregated giveaways across platforms
+- **IsThereAnyDeal** — tracked free promotions
+
+Baklog checks your Library before surfacing a claimable game, so titles you already own are silently skipped — you won't be reminded to claim something you've had for years.
+
+On the **free tier**, Claimable Now covers full game giveaways. The **paid tier** ($5/mo) expands the feed to include DLC, add-ons, and in-game bonus claimables.
+
+## itch.io tab
+
+Your itch.io library lives in a dedicated quarantined tab rather than mixed into the main Library. This is intentional: itch bundles often contain tools, soundtracks, TTRPG PDFs, and other non-game items that would pollute the deduplication table.
+
+- By default, the tab **hides tools, soundtracks, and TTRPG PDFs**.
+- Toggle **Show all owned keys** to see every item in your itch library, including non-game assets.
+
+## Adding games manually
+
+Not every game lives on a connected store — older titles, physical games, DRM-free downloads, or anything you want to track without a store source can be added manually.
+
+<Steps>
+  <Step title="Open the Add game modal">
+    Click the **+ Add game** button in the Library toolbar.
+  </Step>
+  <Step title="Fill in game details">
+    Enter a title and optionally a store link, HLTB hours, review score, genre tags, and an initial status.
+  </Step>
+  <Step title="Save">
+    The game appears immediately in your Library alongside fetched games. Manual entries are stored in `data/personal.json` and are never overwritten by a library fetch.
+  </Step>
+</Steps>
+
+## Hiding and restoring games
+
+If a game is cluttering your Library but you don't want to set a Skip status, you can hide it entirely:
+
+1. Right-click (or use the row action menu) on any game and choose **Hide**.
+2. The game disappears from the Library and Wishlist views.
+3. To restore it, open **Hidden games** from the toolbar menu and click **Restore** next to any entry.
+
+<Info>
+  Hiding a game is a personal preference stored in `data/personal.json`. It is different from the **blacklist**, which is a built-in list of non-game noise (store apps, DLC skins, soundtracks, internal entitlement slugs) that Baklog automatically removes and that cannot be restored. See [Dashboard](/dashboard#blacklist-vs-hidden-list) for the full comparison.
+</Info>
